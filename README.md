@@ -32,6 +32,7 @@ make run EX=04
 | `03` | colors and styles |
 | `04` | paint |
 | `05` | the banner above |
+| `06` | walk an `@` around, only changed cells get redrawn |
 
 Run them from the repo root.
 
