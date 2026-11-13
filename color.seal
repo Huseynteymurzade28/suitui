@@ -9,9 +9,26 @@ Color.index = define(name)
         i += 1
     return -1
 
+Color.hex = define(s)
+    digits = "0123456789abcdef"
+    s = s->lower()
+    rgb = []
+    i = 1
+    while i < 7
+        hi = digits->index(s->sub(i, i + 1))
+        lo = digits->index(s->sub(i + 1, i + 2))
+        rgb->push(hi * 16 + lo)
+        i += 2
+    return rgb
+
 Color.sgr = define(c, base)
-    if typeof(c) == "integer"
+    t = typeof(c)
+    if t == "integer"
         return string(base + 8) + ";5;" + string(c)
+    if t == "list"
+        return string(base + 8) + ";2;" + string(c[0]) + ";" + string(c[1]) + ";" + string(c[2])
+    if c->startwith("#")
+        return Color.sgr(Color.hex(c), base)
     if c == "default"
         return string(base + 9)
     if c->startwith("bright_")
