@@ -1,0 +1,3 @@
+-Ideps/seal/src
+-Wall
+-Wextra

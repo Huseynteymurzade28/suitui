@@ -1,0 +1,3 @@
+[submodule "deps/seal"]
+	path = deps/seal
+	url = https://codeberg.org/seal-lang/seal
