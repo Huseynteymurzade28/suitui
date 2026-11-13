@@ -107,6 +107,19 @@ static void term_flush(seal_state *S)
     seal_pushnull(S);
 }
 
+static void term_getch(seal_state *S)
+{
+    char c;
+
+    seal_checkargc(S, 0);
+    fflush(stdout);
+    if (read(STDIN_FILENO, &c, 1) != 1) {
+        seal_pushnull(S);
+        return;
+    }
+    seal_pushlstring(S, &c, 1);
+}
+
 static const seal_reg termlib[] = {
     { "init",  term_init },
     { "quit",  term_quit },
@@ -115,6 +128,7 @@ static const seal_reg termlib[] = {
     { "move",  term_move },
     { "write", term_write },
     { "flush", term_flush },
+    { "getch", term_getch },
     { NULL, NULL }
 };
 
