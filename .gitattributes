@@ -1,0 +1,3 @@
+tools/** linguist-vendored
+*.gif binary
+*.png binary
