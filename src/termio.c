@@ -95,6 +95,7 @@ static void termio_raw(seal_state *S)
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 
     if (!registered) {
+        setvbuf(stdout, NULL, _IOFBF, 1 << 16);
         atexit(restore);
         catch_signals();
         registered = 1;
