@@ -1,0 +1,182 @@
+include "../tui"
+
+$P = {
+    colors = ["#ff6b6b", "#ffa94d", "#ffd43b", "#69db7c", "#4dabf7", "#9775fa", "#f783ac", "#f8f9fa"],
+    color = 0,
+    pen = false,
+    rainbow = false,
+    hue = 0,
+    cx = 0,
+    cy = 0,
+}
+
+define $ink()
+    if P.rainbow then return Color.hue(P.hue)
+    if P.color == -1 then return null
+    return P.colors[P.color]
+
+define $cell(cx, cy)
+    Tui.move(P.x + cx * 2, P.y + cy)
+    c = P.grid[cy][cx]
+    if c == null
+        Tui.attr("dim")
+        Tui.write("· ")
+    else
+        Tui.bg(c)
+        Tui.write("  ")
+    Tui.reset()
+
+define $cursor()
+    Tui.move(P.x + P.cx * 2, P.y + P.cy)
+    c = ink()
+    if c == null
+        Tui.attr("reverse")
+    else
+        Tui.bg(c)
+        Tui.fg("#1e1e2e")
+    Tui.write("▐▌")
+    Tui.reset()
+
+define $paint()
+    P.grid[P.cy][P.cx] = ink()
+    if P.rainbow then P.hue = (P.hue + 9) % 360
+
+define $status()
+    y = P.y + P.h + 1
+    Tui.move(P.x, y)
+    i = 0
+    while i < 8
+        Tui.bg(P.colors[i])
+        if i == P.color and not P.rainbow
+            Tui.fg("#1e1e2e")
+            Tui.write(" " + string(i + 1) + " ")
+        else
+            Tui.write("   ")
+        Tui.reset()
+        Tui.write(" ")
+        i += 1
+
+    Tui.write("  ")
+    if P.rainbow
+        i = 0
+        while i < 7
+            Tui.fg(Color.hue(i * 50))
+            Tui.write("rainbow"->sub(i, i + 1))
+            i += 1
+        Tui.reset()
+    else if P.color == -1
+        Tui.attr("reverse")
+        Tui.write("eraser ")
+        Tui.reset()
+    else
+        Tui.write("       ")
+
+    Tui.write("  pen ")
+    if P.pen
+        Tui.attr("bold")
+        Tui.write("down")
+    else
+        Tui.attr("dim")
+        Tui.write("up  ")
+    Tui.reset()
+
+define $help()
+    Tui.attr("dim")
+    Tui.move(P.x, P.y + P.h + 3)
+    Tui.write("arrows move   space dab   p pen     r rainbow")
+    Tui.move(P.x, P.y + P.h + 4)
+    Tui.write("1-8 color     0 eraser    c clear   q quit")
+    Tui.reset()
+
+define $redraw()
+    Tui.clear()
+    Tui.move(P.x - 1, P.y - 2)
+    Tui.attr("bold")
+    Tui.fg("#ff8fab")
+    Tui.write("suitui")
+    Tui.reset()
+    Tui.write(" paint")
+    Tui.box(P.x - 1, P.y - 1, P.w * 2 + 2, P.h + 2, null)
+    cy = 0
+    while cy < P.h
+        cx = 0
+        while cx < P.w
+            cell(cx, cy)
+            cx += 1
+        cy += 1
+    cursor()
+    status()
+    help()
+
+define $move(dx, dy)
+    nx = P.cx + dx
+    ny = P.cy + dy
+    if nx < 0 or ny < 0 or nx >= P.w or ny >= P.h then return null
+    cell(P.cx, P.cy)
+    P.cx = nx
+    P.cy = ny
+    if P.pen then paint()
+    cell(P.cx, P.cy)
+    cursor()
+
+define $clear()
+    P.grid = []
+    cy = 0
+    while cy < P.h
+        row = []
+        cx = 0
+        while cx < P.w
+            row->push(null)
+            cx += 1
+        P.grid->push(row)
+        cy += 1
+
+Tui.init()
+s = Tui.size()
+P.w = (s.w - 4) / 2
+if P.w > 40 then P.w = 40
+P.h = s.h - 9
+if P.h > 20 then P.h = 20
+P.x = (s.w - P.w * 2) / 2
+P.y = (s.h - P.h - 5) / 2 + 1
+clear()
+redraw()
+
+key = Tui.readkey()
+while key != "q" and key != "ctrl+c"
+    if key == "up"
+        move(0, -1)
+    else if key == "down"
+        move(0, 1)
+    else if key == "left"
+        move(-1, 0)
+    else if key == "right"
+        move(1, 0)
+    else if key == "space"
+        paint()
+        cursor()
+    else if key == "p"
+        P.pen = not P.pen
+        if P.pen then paint()
+        cursor()
+        status()
+    else if key == "r"
+        P.rainbow = not P.rainbow
+        cursor()
+        status()
+    else if key == "0"
+        P.color = -1
+        P.rainbow = false
+        cursor()
+        status()
+    else if key->len() == 1 and "12345678"->index(key) != -1
+        P.color = "12345678"->index(key)
+        P.rainbow = false
+        cursor()
+        status()
+    else if key == "c"
+        clear()
+        redraw()
+    key = Tui.readkey()
+
+Tui.quit()
