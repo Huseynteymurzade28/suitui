@@ -12,6 +12,7 @@ Tui.LEAD = TermIO.char(192)
 
 Tui.size = TermIO.size
 Tui.ready = false
+Tui.changed = 0
 Tui.x = 0
 Tui.y = 0
 
@@ -20,9 +21,13 @@ Tui.resize = define(w, h)
     Tui.h = h
     Tui.chars = []
     Tui.styles = []
+    Tui.shown = []
+    Tui.shownst = []
     for i in w * h
         Tui.chars->push(" ")
         Tui.styles->push("0")
+        Tui.shown->push(" ")
+        Tui.shownst->push("0")
 
 Tui.init = define()
     csi = Tui.CSI
@@ -63,17 +68,28 @@ Tui.write = define(s)
 
 Tui.flush = define()
     if not Tui.ready then return TermIO.flush()
+    w = Tui.w
     style = ""
-    for i in Tui.w * Tui.h
-        if i % Tui.w == 0
-            TermIO.write(Tui.CSI + string(i / Tui.w + 1) + ";1H")
+    at = -1
+    n = 0
+    for i in w * Tui.h
+        ch = Tui.chars[i]
         st = Tui.styles[i]
-        if st != style
-            TermIO.write(Tui.CSI + st + "m")
-            style = st
-        TermIO.write(Tui.chars[i])
-    TermIO.write(Tui.CSI + "0m")
+        if ch != Tui.shown[i] or st != Tui.shownst[i]
+            if i != at
+                TermIO.write(Tui.CSI + string(i / w + 1) + ";" + string(i % w + 1) + "H")
+            if st != style
+                TermIO.write(Tui.CSI + st + "m")
+                style = st
+            TermIO.write(ch)
+            Tui.shown[i] = ch
+            Tui.shownst[i] = st
+            at = i + 1
+            if at % w == 0 then at = -1
+            n += 1
+    if n > 0 then TermIO.write(Tui.CSI + "0m")
     TermIO.flush()
+    Tui.changed = n
 
 Tui.readkey = define()
     Tui.flush()
