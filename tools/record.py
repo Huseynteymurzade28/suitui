@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""tools/record.py out.cast [-s 60x18] KEYS... -- CMD...
+
+KEYS are escaped strings like '\\x1b[A', or @N to wait N ms.
+"""
+
+import fcntl, json, os, pty, select, struct, sys, termios, time
+
+
+def main():
+    argv = sys.argv[1:]
+    sep = argv.index("--")
+    opts, cmd = argv[:sep], argv[sep + 1:]
+    out = opts.pop(0)
+    cols, rows = 60, 18
+    if opts and opts[0] == "-s":
+        cols, rows = map(int, opts[1].split("x"))
+        opts = opts[2:]
+
+    pid, fd = pty.fork()
+    if pid == 0:
+        os.execvp(cmd[0], cmd)
+    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+
+    start = time.time()
+    events = []
+
+    def pump(ms):
+        end = time.time() + ms / 1000
+        while time.time() < end:
+            r, _, _ = select.select([fd], [], [], 0.02)
+            if not r:
+                continue
+            try:
+                data = os.read(fd, 65536)
+            except OSError:
+                return
+            if not data:
+                return
+            events.append([round(time.time() - start, 4), "o",
+                           data.decode("utf-8", "replace")])
+
+    pump(800)
+    for k in opts:
+        if k.startswith("@"):
+            pump(int(k[1:]))
+            continue
+        if k.isascii():
+            k = k.encode().decode("unicode_escape")
+            os.write(fd, k.encode("latin1"))
+        else:
+            os.write(fd, k.encode())
+        pump(400)
+    pump(300)
+
+    with open(out, "w") as f:
+        f.write(json.dumps({"version": 2, "width": cols, "height": rows}) + "\n")
+        for e in events:
+            f.write(json.dumps(e) + "\n")
+
+
+if __name__ == "__main__":
+    main()
