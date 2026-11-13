@@ -4,7 +4,7 @@
 KEYS are escaped strings like '\\x1b[A', or @N to wait N ms.
 """
 
-import fcntl, json, os, pty, select, struct, sys, termios, time
+import codecs, fcntl, json, os, pty, select, struct, sys, termios, time
 
 
 def main():
@@ -24,6 +24,7 @@ def main():
 
     start = time.time()
     events = []
+    utf8 = codecs.getincrementaldecoder("utf-8")("replace")
 
     def pump(ms):
         end = time.time() + ms / 1000
@@ -38,7 +39,7 @@ def main():
             if not data:
                 return
             events.append([round(time.time() - start, 4), "o",
-                           data.decode("utf-8", "replace")])
+                           utf8.decode(data)])
 
     pump(800)
     for k in opts:
