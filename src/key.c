@@ -61,23 +61,34 @@ static const char *final_name(int c)
     return NULL;
 }
 
-static const char *read_csi(void)
+static const char *read_csi(int *mod)
 {
-    int c, p1 = 0;
+    int c, p[2] = { 0, 0 }, np = 0;
 
     while ((c = readbyte(ESC_TIMEOUT)) != -1) {
         if (c >= '0' && c <= '9')
-            p1 = p1 * 10 + c - '0';
-        else if (c == ';')
-            continue;
+            p[np] = p[np] * 10 + c - '0';
+        else if (c == ';' && np == 0)
+            np = 1;
         else
             break;
     }
     if (c == -1)
         return NULL;
+    if (p[1] > 1)
+        *mod = p[1] - 1;
     if (c == '~')
-        return tilde_name(p1);
+        return tilde_name(p[0]);
     return final_name(c);
+}
+
+static void with_mods(int mod, const char *name, char *out, size_t n)
+{
+    snprintf(out, n, "%s%s%s%s",
+             mod & 4 ? "ctrl+" : "",
+             mod & 2 ? "alt+" : "",
+             mod & 1 ? "shift+" : "",
+             name);
 }
 
 static void byte_name(int c, char *out, size_t n)
@@ -103,6 +114,7 @@ static void byte_name(int c, char *out, size_t n)
 int key_read(char *out, size_t n)
 {
     const char *name = NULL;
+    int mod = 0;
     int c = readbyte(-1);
 
     if (c == -1)
@@ -110,14 +122,14 @@ int key_read(char *out, size_t n)
     if (c == 27) {
         int next = readbyte(ESC_TIMEOUT);
         if (next == '[')
-            name = read_csi();
+            name = read_csi(&mod);
         else if (next == 'O')
             name = final_name(readbyte(ESC_TIMEOUT));
         if (next != -1 && !name)
             name = "unknown";
     }
     if (name)
-        snprintf(out, n, "%s", name);
+        with_mods(mod, name, out, n);
     else
         byte_name(c, out, n);
     return 0;
