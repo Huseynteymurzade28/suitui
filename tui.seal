@@ -1,0 +1,31 @@
+include "termio"
+
+$Tui = { version = "0.0.2" }
+
+Tui.ESC = TermIO.char(27)
+Tui.CSI = Tui.ESC + "["
+
+Tui.size = TermIO.size
+Tui.write = TermIO.write
+Tui.flush = TermIO.flush
+
+Tui.init = define()
+    csi = Tui.CSI
+    TermIO.raw(csi + "0m" + csi + "?25h" + csi + "?1049l")
+    TermIO.write(csi + "?1049h" + csi + "?25l" + csi + "2J")
+    TermIO.flush()
+
+Tui.quit = define()
+    TermIO.restore()
+
+Tui.clear = define()
+    TermIO.write(Tui.CSI + "2J")
+
+Tui.move = define(x, y)
+    TermIO.write(Tui.CSI + string(y + 1) + ";" + string(x + 1) + "H")
+
+Tui.readkey = define()
+    c = TermIO.read()
+    if c == -1
+        return null
+    return TermIO.char(c)

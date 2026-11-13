@@ -1,4 +1,4 @@
-include "../term"
+include "../tui"
 
 define $rep(s, n)
     out = ""
@@ -9,23 +9,23 @@ define $rep(s, n)
     return out
 
 define $box(x, y, w, h, title)
-    Term.move(x, y)
-    Term.write("╭─ " + title + " " + rep("─", w - 5 - title->len()) + "╮")
+    Tui.move(x, y)
+    Tui.write("╭─ " + title + " " + rep("─", w - 5 - title->len()) + "╮")
     i = 1
     while i < h - 1
-        Term.move(x, y + i)
-        Term.write("│" + rep(" ", w - 2) + "│")
+        Tui.move(x, y + i)
+        Tui.write("│" + rep(" ", w - 2) + "│")
         i = i + 1
-    Term.move(x, y + h - 1)
-    Term.write("╰" + rep("─", w - 2) + "╯")
+    Tui.move(x, y + h - 1)
+    Tui.write("╰" + rep("─", w - 2) + "╯")
 
 define $center(y, text)
-    s = Term.size()
-    Term.move((s.w - text->len()) / 2, y)
-    Term.write(text)
+    s = Tui.size()
+    Tui.move((s.w - text->len()) / 2, y)
+    Tui.write(text)
 
-Term.init()
-s = Term.size()
+Tui.init()
+s = Tui.size()
 w = 34
 h = 7
 x = (s.w - w) / 2
@@ -35,7 +35,7 @@ box(x, y, w, h, "suitui")
 center(y + 2, "Hello, Seal")
 center(y + 4, "press q to quit")
 
-while Term.readkey() != "q"
+while Tui.readkey() != "q"
     skip
 
-Term.quit()
+Tui.quit()

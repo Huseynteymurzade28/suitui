@@ -1,4 +1,4 @@
-include "../term"
+include "../tui"
 
 define $rep(s, n)
     out = ""
@@ -9,32 +9,32 @@ define $rep(s, n)
     return out
 
 define $box(x, y, w, h, title)
-    Term.move(x, y)
-    Term.write("╭─ " + title + " " + rep("─", w - 5 - title->len()) + "╮")
+    Tui.move(x, y)
+    Tui.write("╭─ " + title + " " + rep("─", w - 5 - title->len()) + "╮")
     i = 1
     while i < h - 1
-        Term.move(x, y + i)
-        Term.write("│" + rep(" ", w - 2) + "│")
+        Tui.move(x, y + i)
+        Tui.write("│" + rep(" ", w - 2) + "│")
         i = i + 1
-    Term.move(x, y + h - 1)
-    Term.write("╰" + rep("─", w - 2) + "╯")
+    Tui.move(x, y + h - 1)
+    Tui.write("╰" + rep("─", w - 2) + "╯")
 
 define $center(x, w, y, text)
-    Term.move(x + (w - text->len()) / 2, y)
-    Term.write(text)
+    Tui.move(x + (w - text->len()) / 2, y)
+    Tui.write(text)
 
-Term.init()
+Tui.init()
 history = []
 key = null
 
 while key != "ctrl+c"
-    s = Term.size()
+    s = Tui.size()
     w = 36
     h = 14
     x = (s.w - w) / 2
     y = (s.h - h) / 2
 
-    Term.clear()
+    Tui.clear()
     box(x, y, w, h, "keys")
     if key == null
         center(x, w, y + 3, "press something")
@@ -46,12 +46,12 @@ while key != "ctrl+c"
         center(x, w, y + 5 + i, history[i])
         i = i + 1
     center(x, w, y + h - 2, "ctrl+c to quit")
-    Term.flush()
+    Tui.flush()
 
     if key != null
         history->push(key)
         if history->len() > 6
             history->remove(0)
-    key = Term.readkey()
+    key = Tui.readkey()
 
-Term.quit()
+Tui.quit()
