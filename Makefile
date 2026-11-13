@@ -9,8 +9,10 @@ all: $(SEAL) term.so
 $(SEAL):
 	$(MAKE) -C $(SEAL_DIR)
 
-term.so: src/term.c
-	$(CC) $(CFLAGS) -shared $< -o $@
+SRCS = $(wildcard src/*.c)
+
+term.so: $(SRCS) $(wildcard src/*.h)
+	$(CC) $(CFLAGS) -shared $(SRCS) -o $@
 
 EX ?= 00
 run: all

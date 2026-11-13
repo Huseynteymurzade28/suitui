@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include "seal.h"
+#include "key.h"
 
 #define SUITUI_VERSION "0.0.1"
 
@@ -137,17 +138,17 @@ static void term_flush(seal_state *S)
     seal_pushnull(S);
 }
 
-static void term_getch(seal_state *S)
+static void term_readkey(seal_state *S)
 {
-    char c;
+    char name[32];
 
     seal_checkargc(S, 0);
     fflush(stdout);
-    if (read(STDIN_FILENO, &c, 1) != 1) {
+    if (key_read(name, sizeof(name)) == -1) {
         seal_pushnull(S);
         return;
     }
-    seal_pushlstring(S, &c, 1);
+    seal_pushstring(S, name);
 }
 
 static const seal_reg termlib[] = {
@@ -158,7 +159,7 @@ static const seal_reg termlib[] = {
     { "move",  term_move },
     { "write", term_write },
     { "flush", term_flush },
-    { "getch", term_getch },
+    { "readkey", term_readkey },
     { NULL, NULL }
 };
 
