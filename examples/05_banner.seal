@@ -1,0 +1,58 @@
+include "../tui"
+
+$ART = [
+    "#######]##]   ##]##]########]##]   ##]##]",
+    "##[====}##|   ##|##|{==##[==}##|   ##|##|",
+    "#######]##|   ##|##|   ##|   ##|   ##|##|",
+    "{====##|##|   ##|##|   ##|   ##|   ##|##|",
+    "#######|{######[}##|   ##|   {######[}##|",
+    "{======} {=====} {=}   {=}    {=====} {=}",
+]
+
+$ASCII = "#][{}=|"
+$GLYPHS = ["█", "╗", "╔", "╚", "╝", "═", "║"]
+
+define $glyph(ch)
+    i = ASCII->index(ch)
+    if i == -1 then return ch
+    return GLYPHS[i]
+
+define $shade(rgb, pct)
+    return [rgb[0] * pct / 100, rgb[1] * pct / 100, rgb[2] * pct / 100]
+
+define $draw(x, y, offset)
+    row = 0
+    while row < ART->len()
+        line = ART[row]
+        Tui.move(x, y + row)
+        col = 0
+        while col < line->len()
+            ch = line->sub(col, col + 1)
+            rgb = Color.hue((offset + col * 6 + row * 4) % 360)
+            if ch == "#"
+                Tui.fg(rgb)
+            else
+                Tui.fg(shade(rgb, 45))
+            Tui.write(glyph(ch))
+            col += 1
+        row += 1
+    Tui.reset()
+
+Tui.init()
+s = Tui.size()
+w = ART[0]->len()
+x = (s.w - w) / 2
+y = (s.h - 9) / 2
+
+sub = "a terminal UI library for Seal"
+Tui.move((s.w - sub->len()) / 2, y + 8)
+Tui.attr("dim")
+Tui.write(sub)
+Tui.reset()
+
+offset = 0
+while Tui.pollkey(40) == null
+    draw(x, y, offset)
+    offset = (offset + 6) % 360
+
+Tui.quit()
