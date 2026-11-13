@@ -50,3 +50,19 @@ Tui.repeat = define(s, n)
         out += s
         n -= 1
     return out
+
+Tui.box = define(x, y, w, h, title)
+    top = Tui.repeat("─", w - 2)
+    if title != null
+        top = "─ " + title + " " + Tui.repeat("─", w - 5 - title->len())
+    Tui.move(x, y)
+    Tui.write("╭" + top + "╮")
+    i = 1
+    while i < h - 1
+        Tui.move(x, y + i)
+        Tui.write("│")
+        Tui.move(x + w - 1, y + i)
+        Tui.write("│")
+        i += 1
+    Tui.move(x, y + h - 1)
+    Tui.write("╰" + Tui.repeat("─", w - 2) + "╯")

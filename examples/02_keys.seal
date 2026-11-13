@@ -1,16 +1,5 @@
 include "../tui"
 
-define $box(x, y, w, h, title)
-    Tui.move(x, y)
-    Tui.write("╭─ " + title + " " + Tui.repeat("─", w - 5 - title->len()) + "╮")
-    i = 1
-    while i < h - 1
-        Tui.move(x, y + i)
-        Tui.write("│" + Tui.repeat(" ", w - 2) + "│")
-        i = i + 1
-    Tui.move(x, y + h - 1)
-    Tui.write("╰" + Tui.repeat("─", w - 2) + "╯")
-
 define $center(x, w, y, text)
     Tui.move(x + (w - text->len()) / 2, y)
     Tui.write(text)
@@ -27,7 +16,7 @@ while key != "ctrl+c"
     y = (s.h - h) / 2
 
     Tui.clear()
-    box(x, y, w, h, "keys")
+    Tui.box(x, y, w, h, "keys")
     if key == null
         center(x, w, y + 3, "press something")
     else

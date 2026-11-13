@@ -1,16 +1,5 @@
 include "../tui"
 
-define $box(x, y, w, h, title)
-    Tui.move(x, y)
-    Tui.write("╭─ " + title + " " + Tui.repeat("─", w - 5 - title->len()) + "╮")
-    i = 1
-    while i < h - 1
-        Tui.move(x, y + i)
-        Tui.write("│" + Tui.repeat(" ", w - 2) + "│")
-        i = i + 1
-    Tui.move(x, y + h - 1)
-    Tui.write("╰" + Tui.repeat("─", w - 2) + "╯")
-
 define $center(y, text)
     s = Tui.size()
     Tui.move((s.w - text->len()) / 2, y)
@@ -23,7 +12,7 @@ h = 7
 x = (s.w - w) / 2
 y = (s.h - h) / 2
 
-box(x, y, w, h, "suitui")
+Tui.box(x, y, w, h, "suitui")
 center(y + 2, "Hello, Seal")
 center(y + 4, "press q to quit")
 
