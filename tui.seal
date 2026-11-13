@@ -38,3 +38,8 @@ Tui.bg = define(c)
 
 Tui.reset = define()
     TermIO.write(Tui.CSI + "0m")
+
+Tui.ATTRS = { bold = 1, dim = 2, italic = 3, underline = 4, reverse = 7, strike = 9 }
+
+Tui.attr = define(name)
+    TermIO.write(Tui.CSI + string(Tui.ATTRS[name]) + "m")
