@@ -1,0 +1,57 @@
+include "../term"
+
+define $rep(s, n)
+    out = ""
+    i = 0
+    while i < n
+        out = out + s
+        i = i + 1
+    return out
+
+define $box(x, y, w, h, title)
+    Term.move(x, y)
+    Term.write("╭─ " + title + " " + rep("─", w - 5 - title->len()) + "╮")
+    i = 1
+    while i < h - 1
+        Term.move(x, y + i)
+        Term.write("│" + rep(" ", w - 2) + "│")
+        i = i + 1
+    Term.move(x, y + h - 1)
+    Term.write("╰" + rep("─", w - 2) + "╯")
+
+define $center(x, w, y, text)
+    Term.move(x + (w - text->len()) / 2, y)
+    Term.write(text)
+
+Term.init()
+history = []
+key = null
+
+while key != "ctrl+c"
+    s = Term.size()
+    w = 36
+    h = 14
+    x = (s.w - w) / 2
+    y = (s.h - h) / 2
+
+    Term.clear()
+    box(x, y, w, h, "keys")
+    if key == null
+        center(x, w, y + 3, "press something")
+    else
+        center(x, w, y + 3, "[ " + key + " ]")
+
+    i = 0
+    while i < history->len()
+        center(x, w, y + 5 + i, history[i])
+        i = i + 1
+    center(x, w, y + h - 2, "ctrl+c to quit")
+    Term.flush()
+
+    if key != null
+        history->push(key)
+        if history->len() > 6
+            history->remove(0)
+    key = Term.readkey()
+
+Term.quit()
