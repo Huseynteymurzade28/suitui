@@ -28,7 +28,11 @@ Tui.move = define(x, y)
 
 Tui.readkey = define()
     TermIO.flush()
-    return Key.read()
+    return Key.read(-1)
+
+Tui.pollkey = define(ms)
+    TermIO.flush()
+    return Key.read(ms)
 
 Tui.fg = define(c)
     TermIO.write(Tui.CSI + Color.sgr(c, 30) + "m")

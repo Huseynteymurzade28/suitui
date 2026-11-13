@@ -105,8 +105,8 @@ Key.escape = define()
         return "ctrl+alt+" + name->sub(5)
     return "alt+" + name
 
-Key.read = define()
-    c = TermIO.read()
+Key.read = define(timeout)
+    c = TermIO.read(timeout)
     if c == -1
         return null
     if c == 27
