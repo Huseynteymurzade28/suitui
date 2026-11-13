@@ -1,0 +1,116 @@
+$Key = { timeout = 25 }
+
+Key.TILDE = [
+    null, "home", "insert", "delete", "end", "pgup", "pgdown", "home", "end",
+    null, null, "f1", "f2", "f3", "f4", "f5", null, "f6", "f7", "f8", "f9",
+    "f10", null, "f11", "f12",
+]
+
+Key.FINAL = {
+    A = "up", B = "down", C = "right", D = "left", H = "home", F = "end",
+    P = "f1", Q = "f2", R = "f3", S = "f4", Z = "shift+tab",
+}
+
+Key.final = define(c)
+    ch = TermIO.char(c)
+    if Map.has(Key.FINAL, ch)
+        return Key.FINAL[ch]
+    return null
+
+Key.tilde = define(n)
+    if n < Key.TILDE->len()
+        return Key.TILDE[n]
+    return null
+
+Key.byte = define(c)
+    if c == 0
+        return "ctrl+space"
+    else if c == 9
+        return "tab"
+    else if c == 10 or c == 13
+        return "enter"
+    else if c == 8 or c == 127
+        return "backspace"
+    else if c == 27
+        return "esc"
+    else if c == 32
+        return "space"
+    else if c < 27
+        return "ctrl+" + TermIO.char(96 + c)
+    else if c < 32
+        return "ctrl+" + "\\]^_"->sub(c - 28, c - 27)
+    return TermIO.char(c)
+
+Key.utf8 = define(c)
+    n = 1
+    if c >= 240
+        n = 3
+    else if c >= 224
+        n = 2
+    s = TermIO.char(c)
+    while n > 0
+        b = TermIO.read(Key.timeout)
+        if b == -1 or (b & 192) != 128
+            return s
+        s += TermIO.char(b)
+        n -= 1
+    return s
+
+Key.mods = define(mod, name)
+    out = ""
+    if (mod & 4) != 0 then out += "ctrl+"
+    if (mod & 2) != 0 then out += "alt+"
+    if (mod & 1) != 0 then out += "shift+"
+    return out + name
+
+Key.csi = define()
+    p = [0, 0]
+    i = 0
+    c = TermIO.read(Key.timeout)
+    while c != -1
+        if c >= 48 and c <= 57
+            p[i] = p[i] * 10 + c - 48
+        else if c == 59 and i == 0
+            i = 1
+        else
+            stop
+        c = TermIO.read(Key.timeout)
+    if c == -1
+        return "esc"
+    if c == 126
+        name = Key.tilde(p[0])
+    else
+        name = Key.final(c)
+    if name == null
+        return "unknown"
+    if p[1] > 1
+        return Key.mods(p[1] - 1, name)
+    return name
+
+Key.escape = define()
+    c = TermIO.read(Key.timeout)
+    if c == -1
+        return "esc"
+    if c == 91
+        return Key.csi()
+    if c == 79
+        name = Key.final(TermIO.read(Key.timeout))
+        if name == null
+            return "unknown"
+        return name
+    if c >= 192
+        return "alt+" + Key.utf8(c)
+    name = Key.byte(c)
+    if name->startwith("ctrl+")
+        return "ctrl+alt+" + name->sub(5)
+    return "alt+" + name
+
+Key.read = define()
+    c = TermIO.read()
+    if c == -1
+        return null
+    if c == 27
+        return Key.escape()
+    if c >= 192
+        return Key.utf8(c)
+    return Key.byte(c)

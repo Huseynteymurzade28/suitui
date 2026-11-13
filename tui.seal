@@ -1,4 +1,5 @@
 include "termio"
+include "key"
 
 $Tui = { version = "0.0.2" }
 
@@ -25,7 +26,5 @@ Tui.move = define(x, y)
     TermIO.write(Tui.CSI + string(y + 1) + ";" + string(x + 1) + "H")
 
 Tui.readkey = define()
-    c = TermIO.read()
-    if c == -1
-        return null
-    return TermIO.char(c)
+    TermIO.flush()
+    return Key.read()
