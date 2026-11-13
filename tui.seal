@@ -1,5 +1,6 @@
 include "termio"
 include "key"
+include "color"
 
 $Tui = { version = "0.0.2" }
 
@@ -28,3 +29,12 @@ Tui.move = define(x, y)
 Tui.readkey = define()
     TermIO.flush()
     return Key.read()
+
+Tui.fg = define(c)
+    TermIO.write(Tui.CSI + Color.sgr(c, 30) + "m")
+
+Tui.bg = define(c)
+    TermIO.write(Tui.CSI + Color.sgr(c, 40) + "m")
+
+Tui.reset = define()
+    TermIO.write(Tui.CSI + "0m")

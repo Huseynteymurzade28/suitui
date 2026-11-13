@@ -1,0 +1,23 @@
+$Color = {}
+
+Color.NAMES = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]
+
+Color.index = define(name)
+    i = 0
+    while i < 8
+        if Color.NAMES[i] == name then return i
+        i += 1
+    return -1
+
+Color.sgr = define(c, base)
+    if typeof(c) == "integer"
+        return string(base + 8) + ";5;" + string(c)
+    if c == "default"
+        return string(base + 9)
+    if c->startwith("bright_")
+        base += 60
+        c = c->sub(7)
+    i = Color.index(c)
+    if i == -1
+        return string(base + 9)
+    return string(base + i)
