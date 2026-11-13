@@ -1,0 +1,4 @@
+include "../term"
+
+print("suitui", Term.version, "loaded")
+print("Term.hello() ->", Term.hello())
