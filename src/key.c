@@ -111,6 +111,25 @@ static void byte_name(int c, char *out, size_t n)
         snprintf(out, n, "%c", c);
 }
 
+static void utf8_char(int c, char *out, size_t n)
+{
+    int len = c >= 0xf0 ? 4 : c >= 0xe0 ? 3 : 2;
+    int i;
+
+    if (n < 5) {
+        out[0] = '\0';
+        return;
+    }
+    out[0] = c;
+    for (i = 1; i < len; i++) {
+        int b = readbyte(ESC_TIMEOUT);
+        if (b == -1 || (b & 0xc0) != 0x80)
+            break;
+        out[i] = b;
+    }
+    out[i] = '\0';
+}
+
 int key_read(char *out, size_t n)
 {
     const char *name = NULL;
@@ -125,11 +144,25 @@ int key_read(char *out, size_t n)
             name = read_csi(&mod);
         else if (next == 'O')
             name = final_name(readbyte(ESC_TIMEOUT));
+        else if (next != -1) {
+            char ch[8];
+            if (next >= 0xc0)
+                utf8_char(next, ch, sizeof(ch));
+            else
+                byte_name(next, ch, sizeof(ch));
+            if (strncmp(ch, "ctrl+", 5) == 0)
+                snprintf(out, n, "ctrl+alt+%s", ch + 5);
+            else
+                snprintf(out, n, "alt+%s", ch);
+            return 0;
+        }
         if (next != -1 && !name)
             name = "unknown";
     }
     if (name)
         with_mods(mod, name, out, n);
+    else if (c >= 0xc0)
+        utf8_char(c, out, n);
     else
         byte_name(c, out, n);
     return 0;
