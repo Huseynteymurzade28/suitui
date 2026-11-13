@@ -1,0 +1,6 @@
+include "../tui"
+
+key = Tui.readkey()
+while key != null
+    print(key)
+    key = Tui.readkey()

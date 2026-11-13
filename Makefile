@@ -18,10 +18,15 @@ EX ?= 00
 run: all
 	$(SEAL) $(wildcard examples/$(EX)_*.seal)
 
+test: all
+	$(SEAL) examples/00_hello.seal
+	$(SEAL) tests/keys.seal < tests/keys.in | diff -u tests/keys.expected -
+	@echo ok
+
 clean:
 	rm -f termio.so
 
 distclean: clean
 	$(MAKE) -C $(SEAL_DIR) clean
 
-.PHONY: all run clean distclean
+.PHONY: all run test clean distclean
