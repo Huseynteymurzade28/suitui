@@ -11,4 +11,6 @@ make
 make run EX=01
 ```
 
-`term.so` is the C core (raw mode, input, drawing). It is loaded from Seal with `include "term"`.
+The library is written in Seal (`tui.seal`, `key.seal`). `termio.so` is a small C module for
+the few things Seal can't do on its own yet: raw mode, reading a byte with a timeout and the
+terminal size. The goal is to shrink it as Seal grows.
