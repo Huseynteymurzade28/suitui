@@ -43,3 +43,10 @@ Tui.ATTRS = { bold = 1, dim = 2, italic = 3, underline = 4, reverse = 7, strike 
 
 Tui.attr = define(name)
     TermIO.write(Tui.CSI + string(Tui.ATTRS[name]) + "m")
+
+Tui.repeat = define(s, n)
+    out = ""
+    while n > 0
+        out += s
+        n -= 1
+    return out

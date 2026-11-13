@@ -1,23 +1,15 @@
 include "../tui"
 
-define $rep(s, n)
-    out = ""
-    i = 0
-    while i < n
-        out = out + s
-        i = i + 1
-    return out
-
 define $box(x, y, w, h, title)
     Tui.move(x, y)
-    Tui.write("╭─ " + title + " " + rep("─", w - 5 - title->len()) + "╮")
+    Tui.write("╭─ " + title + " " + Tui.repeat("─", w - 5 - title->len()) + "╮")
     i = 1
     while i < h - 1
         Tui.move(x, y + i)
-        Tui.write("│" + rep(" ", w - 2) + "│")
+        Tui.write("│" + Tui.repeat(" ", w - 2) + "│")
         i = i + 1
     Tui.move(x, y + h - 1)
-    Tui.write("╰" + rep("─", w - 2) + "╯")
+    Tui.write("╰" + Tui.repeat("─", w - 2) + "╯")
 
 define $center(x, w, y, text)
     Tui.move(x + (w - text->len()) / 2, y)
