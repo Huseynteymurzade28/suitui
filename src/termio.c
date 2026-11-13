@@ -1,4 +1,5 @@
 #include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,6 +52,22 @@ static void restore(void)
     raw_on = 0;
 }
 
+static void on_signal(int sig)
+{
+    restore();
+    signal(sig, SIG_DFL);
+    raise(sig);
+}
+
+static void catch_signals(void)
+{
+    int sigs[] = { SIGTERM, SIGHUP, SIGQUIT, SIGSEGV, SIGABRT, SIGBUS, SIGFPE };
+    size_t i;
+
+    for (i = 0; i < sizeof(sigs) / sizeof(sigs[0]); i++)
+        signal(sigs[i], on_signal);
+}
+
 static void termio_raw(seal_state *S)
 {
     static int registered;
@@ -79,6 +96,7 @@ static void termio_raw(seal_state *S)
 
     if (!registered) {
         atexit(restore);
+        catch_signals();
         registered = 1;
     }
     hold_stderr();
