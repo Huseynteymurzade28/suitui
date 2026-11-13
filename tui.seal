@@ -7,46 +7,108 @@ $Tui = { version = "0.0.2" }
 Tui.ESC = TermIO.char(27)
 Tui.CSI = Tui.ESC + "["
 
+Tui.CONT = TermIO.char(128)
+Tui.LEAD = TermIO.char(192)
+
 Tui.size = TermIO.size
-Tui.write = TermIO.write
-Tui.flush = TermIO.flush
+Tui.ready = false
+Tui.x = 0
+Tui.y = 0
+
+Tui.resize = define(w, h)
+    Tui.w = w
+    Tui.h = h
+    Tui.chars = []
+    Tui.styles = []
+    for i in w * h
+        Tui.chars->push(" ")
+        Tui.styles->push("0")
 
 Tui.init = define()
     csi = Tui.CSI
     TermIO.raw(csi + "0m" + csi + "?25h" + csi + "?1049l")
     TermIO.write(csi + "?1049h" + csi + "?25l" + csi + "2J")
     TermIO.flush()
+    s = TermIO.size()
+    Tui.resize(s.w, s.h)
+    Tui.ready = true
 
 Tui.quit = define()
+    Tui.ready = false
     TermIO.restore()
 
 Tui.clear = define()
-    TermIO.write(Tui.CSI + "2J")
+    for i in Tui.w * Tui.h
+        Tui.chars[i] = " "
+        Tui.styles[i] = "0"
 
 Tui.move = define(x, y)
-    TermIO.write(Tui.CSI + string(y + 1) + ";" + string(x + 1) + "H")
+    Tui.x = x
+    Tui.y = y
+
+Tui.write = define(s)
+    row = Tui.y * Tui.w
+    inside = Tui.y >= 0 and Tui.y < Tui.h
+    i = -1
+    for b in s
+        if b >= Tui.CONT and not (b >= Tui.LEAD)
+            if i != -1 then Tui.chars[i] += b
+        else
+            i = -1
+            if inside and Tui.x >= 0 and Tui.x < Tui.w
+                i = row + Tui.x
+                Tui.chars[i] = b
+                Tui.styles[i] = Tui.style
+            Tui.x += 1
+
+Tui.flush = define()
+    if not Tui.ready then return TermIO.flush()
+    style = ""
+    for i in Tui.w * Tui.h
+        if i % Tui.w == 0
+            TermIO.write(Tui.CSI + string(i / Tui.w + 1) + ";1H")
+        st = Tui.styles[i]
+        if st != style
+            TermIO.write(Tui.CSI + st + "m")
+            style = st
+        TermIO.write(Tui.chars[i])
+    TermIO.write(Tui.CSI + "0m")
+    TermIO.flush()
 
 Tui.readkey = define()
-    TermIO.flush()
+    Tui.flush()
     return Key.read(-1)
 
 Tui.pollkey = define(ms)
-    TermIO.flush()
+    Tui.flush()
     return Key.read(ms)
 
+Tui.pen = { fg = "", bg = "", attrs = "" }
+Tui.style = "0"
+
+Tui.restyle = define()
+    st = "0" + Tui.pen.attrs
+    if Tui.pen.fg != "" then st += ";" + Tui.pen.fg
+    if Tui.pen.bg != "" then st += ";" + Tui.pen.bg
+    Tui.style = st
+
 Tui.fg = define(c)
-    TermIO.write(Tui.CSI + Color.sgr(c, 30) + "m")
+    Tui.pen.fg = Color.sgr(c, 30)
+    Tui.restyle()
 
 Tui.bg = define(c)
-    TermIO.write(Tui.CSI + Color.sgr(c, 40) + "m")
+    Tui.pen.bg = Color.sgr(c, 40)
+    Tui.restyle()
 
 Tui.reset = define()
-    TermIO.write(Tui.CSI + "0m")
+    Tui.pen = { fg = "", bg = "", attrs = "" }
+    Tui.style = "0"
 
 Tui.ATTRS = { bold = 1, dim = 2, italic = 3, underline = 4, reverse = 7, strike = 9 }
 
 Tui.attr = define(name)
-    TermIO.write(Tui.CSI + string(Tui.ATTRS[name]) + "m")
+    Tui.pen.attrs += ";" + string(Tui.ATTRS[name])
+    Tui.restyle()
 
 Tui.repeat = define(s, n)
     out = ""
