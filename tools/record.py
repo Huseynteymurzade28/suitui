@@ -56,6 +56,8 @@ def main():
     with open(out, "w") as f:
         f.write(json.dumps({"version": 2, "width": cols, "height": rows}) + "\n")
         for e in events:
+            if "\x1b[?1049l" in e[2]:
+                break
             f.write(json.dumps(e) + "\n")
 
 
