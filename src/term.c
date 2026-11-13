@@ -9,6 +9,34 @@
 
 static struct termios orig;
 static int active;
+static int saved_stderr = -1;
+static FILE *errlog;
+
+static void hold_stderr(void)
+{
+    if (!isatty(STDERR_FILENO) || !(errlog = tmpfile()))
+        return;
+    fflush(stderr);
+    saved_stderr = dup(STDERR_FILENO);
+    dup2(fileno(errlog), STDERR_FILENO);
+}
+
+static void release_stderr(void)
+{
+    char buf[4096];
+    size_t n;
+
+    if (saved_stderr == -1)
+        return;
+    fflush(stderr);
+    dup2(saved_stderr, STDERR_FILENO);
+    close(saved_stderr);
+    saved_stderr = -1;
+    rewind(errlog);
+    while ((n = fread(buf, 1, sizeof(buf), errlog)) > 0)
+        fwrite(buf, 1, n, stderr);
+    fclose(errlog);
+}
 
 static void restore(void)
 {
@@ -17,6 +45,7 @@ static void restore(void)
     fputs("\x1b[0m\x1b[?25h\x1b[?1049l", stdout);
     fflush(stdout);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig);
+    release_stderr();
     active = 0;
 }
 
@@ -50,6 +79,7 @@ static void term_init(seal_state *S)
     }
     fputs("\x1b[?1049h\x1b[?25l\x1b[2J", stdout);
     fflush(stdout);
+    hold_stderr();
     active = 1;
     seal_pushnull(S);
 }
