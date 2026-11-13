@@ -1,0 +1,56 @@
+include "../tui"
+
+$GROUND = [".", ",", "'", "\"", "`"]
+
+define $ground(x, y)
+    h = (x * 73856093) ^ (y * 19349663)
+    h = (h ^ (h >> 7)) % 1000
+    if h >= GROUND->len() * 40 then return " "
+    return GROUND[h / 40]
+
+define $scene(px, py)
+    Tui.clear()
+    Tui.fg("#4e6e58")
+    y = 1
+    while y < Tui.h - 1
+        Tui.move(0, y)
+        x = 0
+        while x < Tui.w
+            Tui.write(ground(x, y))
+            x += 1
+        y += 1
+    Tui.reset()
+
+    Tui.move(px, py)
+    Tui.attr("bold")
+    Tui.fg("#ff8fab")
+    Tui.write("@")
+    Tui.reset()
+
+    Tui.move(1, 0)
+    Tui.attr("bold")
+    Tui.write("walk")
+    Tui.reset()
+    Tui.attr("dim")
+    Tui.write("  arrows move, q quits")
+    Tui.reset()
+
+    Tui.move(1, Tui.h - 1)
+    Tui.attr("dim")
+    Tui.write("cells sent last frame: " + string(Tui.changed))
+    Tui.reset()
+
+Tui.init()
+px = Tui.w / 2
+py = Tui.h / 2
+
+key = ""
+while key != "q" and key != "ctrl+c"
+    if key == "up" and py > 1 then py -= 1
+    if key == "down" and py < Tui.h - 2 then py += 1
+    if key == "left" and px > 0 then px -= 1
+    if key == "right" and px < Tui.w - 1 then px += 1
+    scene(px, py)
+    key = Tui.readkey()
+
+Tui.quit()
