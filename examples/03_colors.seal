@@ -6,16 +6,6 @@ define $label(x, y, text)
     Tui.write(text)
     Tui.reset()
 
-define $hue(h)
-    f = h % 60 * 255 / 60
-    sector = h / 60
-    if sector == 0 then return [255, f, 0]
-    if sector == 1 then return [255 - f, 255, 0]
-    if sector == 2 then return [0, 255, f]
-    if sector == 3 then return [0, 255 - f, 255]
-    if sector == 4 then return [f, 0, 255]
-    return [255, 0, 255 - f]
-
 define $basic(x, y)
     label(x, y, "16 colors")
     i = 0
@@ -53,8 +43,8 @@ define $rainbow(x, y, w)
     i = 0
     while i < w
         Tui.move(x + i, y + 1)
-        Tui.fg(hue(i * 360 / w))
-        Tui.bg(hue((i * 360 / w + 30) % 360))
+        Tui.fg(Color.hue(i * 360 / w))
+        Tui.bg(Color.hue((i * 360 / w + 30) % 360))
         Tui.write("▀")
         i += 1
     Tui.reset()

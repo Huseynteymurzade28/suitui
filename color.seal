@@ -38,3 +38,13 @@ Color.sgr = define(c, base)
     if i == -1
         return string(base + 9)
     return string(base + i)
+
+Color.hue = define(h)
+    f = h % 60 * 255 / 60
+    sector = h / 60
+    if sector == 0 then return [255, f, 0]
+    if sector == 1 then return [255 - f, 255, 0]
+    if sector == 2 then return [0, 255, f]
+    if sector == 3 then return [0, 255 - f, 255]
+    if sector == 4 then return [f, 0, 255]
+    return [255, 0, 255 - f]
