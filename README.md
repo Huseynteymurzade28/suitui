@@ -40,6 +40,7 @@ make run EX=09
 | `07` | a box that stays centered while you resize the window |
 | `08` | border styles |
 | `09` | snake |
+| `10` | Turkish, CJK and emoji lined up in a table |
 
 Run them from the repo root.
 
@@ -63,11 +64,12 @@ print("you pressed", key)
 `Tui.readkey()` returns names like `up`, `ctrl+right`, `shift+tab`, `alt+x` or `ç`.
 It returns `resize` when the window changes size, `Tui.w` and `Tui.h` are already updated by then.
 `Tui.border("double")` picks the box style: `single`, `rounded`, `double` or `thick`.
+Wide characters (CJK, emoji) take two cells, `Tui.width(s)` tells how many columns a string needs.
 Colors can be names (`"red"`, `"bright_blue"`), 0-255, `"#rrggbb"` or `[r, g, b]`.
 
 ## How it's built
 
-Everything is Seal (`tui.seal`, `key.seal`, `color.seal`) except `termio.so`, a small C module
+Everything is Seal (`tui.seal`, `key.seal`, `color.seal`, `utf8.seal`) except `termio.so`, a small C module
 for what Seal can't do on its own yet: raw mode, reading a byte with a timeout and the terminal
 size. The issues labeled [upstream](https://github.com/Huseynteymurzade28/suitui/labels/upstream)
 track what Seal would need for that module to go away.
