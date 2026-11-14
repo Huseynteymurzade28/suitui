@@ -137,18 +137,30 @@ Tui.repeat = define(s, n)
         n -= 1
     return out
 
+Tui.BORDERS = {
+    single = ["─", "│", "┌", "┐", "└", "┘"],
+    rounded = ["─", "│", "╭", "╮", "╰", "╯"],
+    double = ["═", "║", "╔", "╗", "╚", "╝"],
+    thick = ["━", "┃", "┏", "┓", "┗", "┛"],
+}
+Tui.edges = Tui.BORDERS.rounded
+
+Tui.border = define(name)
+    Tui.edges = Tui.BORDERS[name]
+
 Tui.box = define(x, y, w, h, title)
-    top = Tui.repeat("─", w - 2)
+    e = Tui.edges
+    top = Tui.repeat(e[0], w - 2)
     if title != null
-        top = "─ " + title + " " + Tui.repeat("─", w - 5 - title->len())
+        top = e[0] + " " + title + " " + Tui.repeat(e[0], w - 5 - title->len())
     Tui.move(x, y)
-    Tui.write("╭" + top + "╮")
+    Tui.write(e[2] + top + e[3])
     i = 1
     while i < h - 1
         Tui.move(x, y + i)
-        Tui.write("│")
+        Tui.write(e[1])
         Tui.move(x + w - 1, y + i)
-        Tui.write("│")
+        Tui.write(e[1])
         i += 1
     Tui.move(x, y + h - 1)
-    Tui.write("╰" + Tui.repeat("─", w - 2) + "╯")
+    Tui.write(e[4] + Tui.repeat(e[0], w - 2) + e[5])
