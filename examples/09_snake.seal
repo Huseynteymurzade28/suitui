@@ -1,0 +1,183 @@
+include "../tui"
+include "math"
+
+$COLS = 20
+$ROWS = 12
+$DIRS = { up = [0, -1], down = [0, 1], left = [-1, 0], right = [1, 0] }
+$KEYS = { w = "up", s = "down", a = "left", d = "right", k = "up", j = "down", h = "left", l = "right" }
+$G = { best = 0 }
+
+define $place()
+    x = Math.random(COLS)
+    y = Math.random(ROWS)
+    while G.grid[y * COLS + x] != 0
+        x = Math.random(COLS)
+        y = Math.random(ROWS)
+    G.food = [x, y]
+
+define $start()
+    G.grid = []
+    for i in COLS * ROWS
+        G.grid->push(0)
+    G.snake = []
+    for i in 4
+        x = COLS / 2 - 5 + i
+        G.snake->push([x, ROWS / 2])
+        G.grid[ROWS / 2 * COLS + x] = 1
+    G.dir = "right"
+    G.turns = []
+    G.score = 0
+    G.dead = false
+    G.paused = false
+    place()
+
+define $turn(name)
+    n = G.turns->len()
+    last = G.dir
+    if n > 0 then last = G.turns[n - 1]
+    a = DIRS[name]
+    b = DIRS[last]
+    if n < 2 and name != last and (a[0] + b[0] != 0 or a[1] + b[1] != 0)
+        G.turns->push(name)
+
+define $step()
+    if G.turns->len() > 0 then G.dir = G.turns->remove(0)
+    d = DIRS[G.dir]
+    head = G.snake[G.snake->len() - 1]
+    x = head[0] + d[0]
+    y = head[1] + d[1]
+    if x < 0 or x >= COLS or y < 0 or y >= ROWS
+        G.dead = true
+        return null
+    ate = x == G.food[0] and y == G.food[1]
+    if not ate
+        tail = G.snake->remove(0)
+        G.grid[tail[1] * COLS + tail[0]] = 0
+    if G.grid[y * COLS + x] != 0
+        G.dead = true
+        return null
+    G.snake->push([x, y])
+    G.grid[y * COLS + x] = 1
+    if ate
+        G.score += 1
+        if G.score > G.best then G.best = G.score
+        if G.snake->len() == COLS * ROWS
+            G.dead = true
+        else
+            place()
+
+define $speed()
+    n = 10 - G.score / 4
+    if n < 5 then n = 5
+    return n
+
+define $cell(x, y, color)
+    Tui.move(G.x + 1 + x * 2, G.y + 1 + y)
+    Tui.bg(color)
+    Tui.write("  ")
+
+define $mix(a, b, pct)
+    c = []
+    for i in 3
+        c->push(a[i] + (b[i] - a[i]) * pct / 100)
+    return c
+
+define $popup(title, hint)
+    w = 22
+    x = G.x + COLS + 1 - w / 2
+    y = G.y + ROWS / 2 - 1
+    Tui.border("rounded")
+    Tui.fg("#ff8fab")
+    Tui.box(x, y, w, 4, null)
+    for i in 2
+        Tui.move(x + 1, y + 1 + i)
+        Tui.write(Tui.repeat(" ", w - 2))
+    Tui.attr("bold")
+    Tui.move(x + (w - title->len()) / 2, y + 1)
+    Tui.write(title)
+    Tui.reset()
+    Tui.attr("dim")
+    Tui.move(x + (w - hint->len()) / 2, y + 2)
+    Tui.write(hint)
+    Tui.reset()
+
+define $scene()
+    Tui.clear()
+    w = COLS * 2 + 2
+    h = ROWS + 2
+    if Tui.w < w or Tui.h < h + 1
+        msg = "window too small"
+        Tui.move((Tui.w - msg->len()) / 2, Tui.h / 2)
+        Tui.write(msg)
+        return null
+    G.x = (Tui.w - w) / 2
+    G.y = (Tui.h - h - 1) / 2
+
+    Tui.border("double")
+    Tui.fg("#52796f")
+    Tui.box(G.x, G.y, w, h, "snake")
+    Tui.reset()
+
+    for y in ROWS
+        for x in COLS
+            if (x + y) % 2 == 0
+                cell(x, y, [24, 36, 32])
+            else
+                cell(x, y, [28, 42, 37])
+    cell(G.food[0], G.food[1], "#ffd166")
+
+    tail = [45, 106, 79]
+    head = [183, 228, 199]
+    if G.dead
+        tail = [110, 45, 62]
+        head = [255, 143, 171]
+    n = G.snake->len()
+    for i in n
+        s = G.snake[i]
+        cell(s[0], s[1], mix(tail, head, i * 100 / (n - 1)))
+    Tui.reset()
+
+    Tui.move(G.x + 1, G.y + h)
+    Tui.attr("bold")
+    Tui.write("score " + string(G.score))
+    Tui.reset()
+    Tui.attr("dim")
+    Tui.write("  best " + string(G.best))
+    hint = "space pauses, q quits"
+    Tui.move(G.x + w - 1 - hint->len(), G.y + h)
+    Tui.write(hint)
+    Tui.reset()
+
+    if G.dead
+        popup("game over", "r to play again")
+    else if G.paused
+        popup("paused", "space to go on")
+
+Tui.init()
+start()
+scene()
+left = speed()
+
+while true
+    wait = 10
+    if G.dead or G.paused then wait = -1
+    key = Tui.pollkey(wait)
+    if key == "q" or key == "ctrl+c" then stop
+    draw = key == "resize"
+    if key == "r"
+        start()
+        left = speed()
+        draw = true
+    if key == "space" and not G.dead
+        G.paused = not G.paused
+        draw = true
+    if key != null and Map.has(KEYS, key) then key = KEYS[key]
+    if key != null and Map.has(DIRS, key) and not G.paused then turn(key)
+    left -= 1
+    if left <= 0 and not G.dead and not G.paused
+        step()
+        left = speed()
+        draw = true
+    if draw then scene()
+
+Tui.quit()
