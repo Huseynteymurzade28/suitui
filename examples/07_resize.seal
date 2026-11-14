@@ -1,0 +1,29 @@
+include "../tui"
+
+define $scene()
+    Tui.clear()
+    w = 28
+    h = 7
+    x = (Tui.w - w) / 2
+    y = (Tui.h - h) / 2
+    Tui.fg("#8ecae6")
+    Tui.box(x, y, w, h, "resize me")
+    Tui.reset()
+
+    size = string(Tui.w) + " x " + string(Tui.h)
+    Tui.move((Tui.w - size->len()) / 2, y + 3)
+    Tui.attr("bold")
+    Tui.write(size)
+    Tui.reset()
+
+    Tui.move(1, Tui.h - 1)
+    Tui.attr("dim")
+    Tui.write("q quits")
+    Tui.reset()
+
+Tui.init()
+key = ""
+while key != "q" and key != "ctrl+c"
+    scene()
+    key = Tui.readkey()
+Tui.quit()
