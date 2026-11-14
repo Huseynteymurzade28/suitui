@@ -13,6 +13,7 @@ Tui.LEAD = TermIO.char(192)
 Tui.size = TermIO.size
 Tui.ready = false
 Tui.changed = 0
+Tui.dirty = false
 Tui.x = 0
 Tui.y = 0
 
@@ -28,6 +29,7 @@ Tui.resize = define(w, h)
         Tui.styles->push("0")
         Tui.shown->push(" ")
         Tui.shownst->push("0")
+    Tui.dirty = true
 
 Tui.init = define()
     csi = Tui.CSI
@@ -46,6 +48,7 @@ Tui.clear = define()
     for i in Tui.w * Tui.h
         Tui.chars[i] = " "
         Tui.styles[i] = "0"
+    Tui.dirty = true
 
 Tui.move = define(x, y)
     Tui.x = x
@@ -65,9 +68,12 @@ Tui.write = define(s)
                 Tui.chars[i] = b
                 Tui.styles[i] = Tui.style
             Tui.x += 1
+    Tui.dirty = true
 
 Tui.flush = define()
-    if not Tui.ready then return TermIO.flush()
+    Tui.changed = 0
+    if not Tui.ready or not Tui.dirty then return TermIO.flush()
+    Tui.dirty = false
     w = Tui.w
     style = ""
     at = -1
