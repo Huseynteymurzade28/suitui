@@ -13,6 +13,10 @@
 ---
 
 <p align="center">
+  <img src="docs/snake.gif" alt="snake example" width="560">
+</p>
+
+<p align="center">
   <img src="docs/paint.gif" alt="paint example" width="420">
   <img src="docs/colors.png" alt="colors example" width="380">
 </p>
@@ -22,7 +26,7 @@
 ```
 git clone --recursive https://github.com/Huseynteymurzade28/suitui
 cd suitui
-make run EX=04
+make run EX=09
 ```
 
 | `EX=` | example |
@@ -33,6 +37,9 @@ make run EX=04
 | `04` | paint |
 | `05` | the banner above |
 | `06` | walk an `@` around, only changed cells get redrawn |
+| `07` | a box that stays centered while you resize the window |
+| `08` | border styles |
+| `09` | snake |
 
 Run them from the repo root.
 
@@ -54,6 +61,8 @@ print("you pressed", key)
 ```
 
 `Tui.readkey()` returns names like `up`, `ctrl+right`, `shift+tab`, `alt+x` or `ç`.
+It returns `resize` when the window changes size, `Tui.w` and `Tui.h` are already updated by then.
+`Tui.border("double")` picks the box style: `single`, `rounded`, `double` or `thick`.
 Colors can be names (`"red"`, `"bright_blue"`), 0-255, `"#rrggbb"` or `[r, g, b]`.
 
 ## How it's built
