@@ -1,0 +1,73 @@
+include "../tui"
+
+$ROWS = [
+    ["çığ, öküz, şiir", "Türkçe"],
+    ["こんにちは世界", "日本語"],
+    ["你好，世界", "中文"],
+    ["ＳＥＡＬ　ｔｕｉ", "fullwidth"],
+    ["🦭 🌊 🐟 🚀", "emoji"],
+    ["plain ascii", "English"],
+]
+$COLORS = ["#ff8fab", "#8ecae6", "#ffd166", "#95d5b2", "#cdb4db", "#adb5bd"]
+
+define $rule(x, y, w, cols, cross)
+    Tui.move(x, y)
+    Tui.write("├" + Tui.repeat("─", w - 2) + "┤")
+    Tui.move(cols[1] - 2, y)
+    Tui.write(cross)
+    Tui.move(cols[2] - 2, y)
+    Tui.write(cross)
+
+define $scene()
+    Tui.clear()
+    w = 46
+    h = ROWS->len() + 6
+    x = (Tui.w - w) / 2
+    y = (Tui.h - h) / 2
+    cols = [x + 2, x + 22, x + 34]
+
+    Tui.fg("#52796f")
+    Tui.box(x, y, w, h, "merhaba dünya 🌍")
+    for i in ROWS->len() + 2
+        Tui.move(cols[1] - 2, y + 1 + i)
+        Tui.write("│")
+        Tui.move(cols[2] - 2, y + 1 + i)
+        Tui.write("│")
+    rule(x, y + 2, w, cols, "┼")
+    rule(x, y + h - 3, w, cols, "┴")
+    Tui.reset()
+
+    Tui.attr("dim")
+    Tui.move(cols[0], y + 1)
+    Tui.write("text")
+    Tui.move(cols[1], y + 1)
+    Tui.write("language")
+    Tui.move(cols[2], y + 1)
+    Tui.write("columns")
+    Tui.reset()
+
+    for i in ROWS->len()
+        row = ROWS[i]
+        Tui.fg(COLORS[i])
+        Tui.move(cols[0], y + 3 + i)
+        Tui.write(row[0])
+        Tui.reset()
+        Tui.move(cols[1], y + 3 + i)
+        Tui.write(row[1])
+        Tui.attr("dim")
+        Tui.move(cols[2], y + 3 + i)
+        Tui.write(string(Tui.width(row[0])))
+        Tui.reset()
+
+    msg = "ortada: 中心 🦭"
+    Tui.move(x + (w - Tui.width(msg)) / 2, y + h - 2)
+    Tui.attr("bold")
+    Tui.write(msg)
+    Tui.reset()
+
+Tui.init()
+key = ""
+while key != "q" and key != "ctrl+c"
+    scene()
+    key = Tui.readkey()
+Tui.quit()
