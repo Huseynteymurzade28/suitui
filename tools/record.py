@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """tools/record.py out.cast [-s 60x18] KEYS... -- CMD...
 
-KEYS are escaped strings like '\\x1b[A', or @N to wait N ms.
+KEYS are escaped strings like '\\x1b[A', @N to wait N ms,
+or =COLSxROWS to resize the terminal.
 """
 
 import codecs, fcntl, json, os, pty, select, struct, sys, termios, time
@@ -20,10 +21,15 @@ def main():
     pid, fd = pty.fork()
     if pid == 0:
         os.execvp(cmd[0], cmd)
-    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
-
     start = time.time()
     events = []
+
+    def resize(c, r):
+        fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", r, c, 0, 0))
+        if events:
+            events.append([round(time.time() - start, 4), "r", f"{c}x{r}"])
+
+    resize(cols, rows)
     utf8 = codecs.getincrementaldecoder("utf-8")("replace")
 
     def pump(ms):
@@ -46,6 +52,10 @@ def main():
         if k.startswith("@"):
             pump(int(k[1:]))
             continue
+        if k.startswith("=") and "x" in k:
+            resize(*map(int, k[1:].split("x")))
+            pump(400)
+            continue
         if k.isascii():
             k = k.encode().decode("unicode_escape")
             os.write(fd, k.encode("latin1"))
@@ -57,7 +67,7 @@ def main():
     with open(out, "w") as f:
         f.write(json.dumps({"version": 2, "width": cols, "height": rows}) + "\n")
         for e in events:
-            if "\x1b[?1049l" in e[2]:
+            if e[1] == "o" and "\x1b[?1049l" in e[2]:
                 break
             f.write(json.dumps(e) + "\n")
 
