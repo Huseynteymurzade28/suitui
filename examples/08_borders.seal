@@ -1,0 +1,28 @@
+include "../tui"
+
+$NAMES = ["single", "rounded", "double", "thick"]
+$COLORS = ["#8ecae6", "#ff8fab", "#ffd166", "#95d5b2"]
+
+define $scene()
+    Tui.clear()
+    w = 16
+    h = 5
+    gap = 2
+    x = (Tui.w - 2 * w - gap) / 2
+    y = (Tui.h - 2 * h - 1) / 2
+    for i in 4
+        bx = x + i % 2 * (w + gap)
+        by = y + i / 2 * (h + 1)
+        Tui.border(NAMES[i])
+        Tui.fg(COLORS[i])
+        Tui.box(bx, by, w, h, null)
+        Tui.reset()
+        Tui.move(bx + (w - NAMES[i]->len()) / 2, by + 2)
+        Tui.write(NAMES[i])
+
+Tui.init()
+key = ""
+while key != "q" and key != "ctrl+c"
+    scene()
+    key = Tui.readkey()
+Tui.quit()
