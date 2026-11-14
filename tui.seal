@@ -91,13 +91,17 @@ Tui.flush = define()
     TermIO.flush()
     Tui.changed = n
 
-Tui.readkey = define()
-    Tui.flush()
-    return Key.read(-1)
-
 Tui.pollkey = define(ms)
     Tui.flush()
-    return Key.read(ms)
+    key = Key.read(ms)
+    if key == "resize"
+        s = TermIO.size()
+        Tui.resize(s.w, s.h)
+        TermIO.write(Tui.CSI + "2J")
+    return key
+
+Tui.readkey = define()
+    return Tui.pollkey(-1)
 
 Tui.pen = { fg = "", bg = "", attrs = "" }
 Tui.style = "0"

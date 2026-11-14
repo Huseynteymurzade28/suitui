@@ -109,6 +109,8 @@ Key.read = define(timeout)
     c = TermIO.read(timeout)
     if c == -1
         return null
+    if c == -2
+        return "resize"
     if c == 27
         return Key.escape()
     if c >= 192
