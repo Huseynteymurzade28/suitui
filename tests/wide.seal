@@ -1,0 +1,25 @@
+include "../tui"
+
+define $row()
+    out = ""
+    for ch in Tui.chars
+        if ch == ""
+            out += "_"
+        else
+            out += ch
+    print(out)
+
+define $at(x, s)
+    Tui.move(x, 0)
+    Tui.write(s)
+    row()
+
+Tui.resize(8, 1)
+at(0, "a中b")
+at(2, "x")
+at(0, "日本語")
+at(1, "中")
+at(3, "y")
+at(7, "中")
+at(6, "中")
+at(0, "e" + Utf8.char(0x301))

@@ -1,5 +1,6 @@
 include "termio"
 include "key"
+include "utf8"
 include "color"
 
 $Tui = { version = "0.0.2" }
@@ -7,15 +8,14 @@ $Tui = { version = "0.0.2" }
 Tui.ESC = TermIO.char(27)
 Tui.CSI = Tui.ESC + "["
 
-Tui.CONT = TermIO.char(128)
-Tui.LEAD = TermIO.char(192)
-
 Tui.size = TermIO.size
 Tui.ready = false
 Tui.changed = 0
 Tui.dirty = false
 Tui.x = 0
 Tui.y = 0
+Tui.last = -1
+Tui.width = Utf8.width
 
 Tui.resize = define(w, h)
     Tui.w = w
@@ -54,20 +54,28 @@ Tui.move = define(x, y)
     Tui.x = x
     Tui.y = y
 
+Tui.put = define(ch)
+    n = Utf8.cell(ch)
+    if n == 0
+        if Tui.last != -1 then Tui.chars[Tui.last] += ch
+        return null
+    Tui.last = -1
+    x = Tui.x
+    Tui.x += n
+    if Tui.y < 0 or Tui.y >= Tui.h or x < 0 or x + n > Tui.w then return null
+    i = Tui.y * Tui.w + x
+    if Tui.chars[i] == "" then Tui.chars[i - 1] = " "
+    if x + n < Tui.w and Tui.chars[i + n] == "" then Tui.chars[i + n] = " "
+    Tui.chars[i] = ch
+    Tui.styles[i] = Tui.style
+    if n == 2
+        Tui.chars[i + 1] = ""
+        Tui.styles[i + 1] = Tui.style
+    Tui.last = i
+
 Tui.write = define(s)
-    row = Tui.y * Tui.w
-    inside = Tui.y >= 0 and Tui.y < Tui.h
-    i = -1
-    for b in s
-        if b >= Tui.CONT and not (b >= Tui.LEAD)
-            if i != -1 then Tui.chars[i] += b
-        else
-            i = -1
-            if inside and Tui.x >= 0 and Tui.x < Tui.w
-                i = row + Tui.x
-                Tui.chars[i] = b
-                Tui.styles[i] = Tui.style
-            Tui.x += 1
+    for ch in Utf8.split(s)
+        Tui.put(ch)
     Tui.dirty = true
 
 Tui.flush = define()
@@ -158,7 +166,7 @@ Tui.box = define(x, y, w, h, title)
     e = Tui.edges
     top = Tui.repeat(e[0], w - 2)
     if title != null
-        top = e[0] + " " + title + " " + Tui.repeat(e[0], w - 5 - title->len())
+        top = e[0] + " " + title + " " + Tui.repeat(e[0], w - 5 - Tui.width(title))
     Tui.move(x, y)
     Tui.write(e[2] + top + e[3])
     i = 1

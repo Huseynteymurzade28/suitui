@@ -22,6 +22,7 @@ test: all
 	$(SEAL) examples/00_hello.seal
 	$(SEAL) tests/keys.seal < tests/keys.in | diff -u tests/keys.expected -
 	$(SEAL) tests/utf8.seal | diff -u tests/utf8.expected -
+	$(SEAL) tests/wide.seal | diff -u tests/wide.expected -
 	@echo ok
 
 clean:
