@@ -1,0 +1,53 @@
+$Utf8 = {}
+
+Utf8.char = define(cp)
+    c = TermIO.char
+    if cp < 0x80 then return c(cp)
+    if cp < 0x800 then return c(0xC0 | (cp >> 6)) + c(0x80 | (cp & 0x3F))
+    tail = c(0x80 | ((cp >> 6) & 0x3F)) + c(0x80 | (cp & 0x3F))
+    if cp < 0x10000 then return c(0xE0 | (cp >> 12)) + tail
+    return c(0xF0 | (cp >> 18)) + c(0x80 | ((cp >> 12) & 0x3F)) + tail
+
+Utf8.ranges = define(pairs)
+    out = []
+    for p in pairs
+        out->push([Utf8.char(p[0]), Utf8.char(p[1])])
+    return out
+
+Utf8.CONT = TermIO.char(0x80)
+Utf8.LEAD = TermIO.char(0xC0)
+
+Utf8.WIDE = Utf8.ranges([
+    [0x1100, 0x115F], [0x2E80, 0x303E], [0x3041, 0xA4CF], [0xAC00, 0xD7A3],
+    [0xF900, 0xFAFF], [0xFE30, 0xFE4F], [0xFF00, 0xFF60], [0xFFE0, 0xFFE6],
+    [0x1F300, 0x1F64F], [0x1F680, 0x1F6FF], [0x1F900, 0x1FAFF], [0x20000, 0x3FFFD],
+])
+
+Utf8.ZERO = Utf8.ranges([[0x300, 0x36F], [0x200B, 0x200D], [0xFE00, 0xFE0F]])
+
+Utf8.within = define(ch, ranges)
+    for r in ranges
+        if ch < r[0] then return false
+        if ch <= r[1] then return true
+    return false
+
+Utf8.cell = define(ch)
+    if ch < Utf8.CONT then return 1
+    if Utf8.within(ch, Utf8.ZERO) then return 0
+    if Utf8.within(ch, Utf8.WIDE) then return 2
+    return 1
+
+Utf8.split = define(s)
+    out = []
+    for b in s
+        if b >= Utf8.CONT and not (b >= Utf8.LEAD) and out->len() > 0
+            out[out->len() - 1] += b
+        else
+            out->push(b)
+    return out
+
+Utf8.width = define(s)
+    n = 0
+    for ch in Utf8.split(s)
+        n += Utf8.cell(ch)
+    return n

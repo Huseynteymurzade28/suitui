@@ -1,0 +1,16 @@
+include "../termio"
+include "../utf8"
+
+define $show(s)
+    print(s, Utf8.split(s)->len(), Utf8.width(s))
+
+show("seal")
+show("çığ öküz")
+show("こんにちは")
+show("你好, 世界")
+show("안녕")
+show("🦭🌊")
+show("e" + Utf8.char(0x301) + "!")
+show("ＡＢ")
+show("╭─╮")
+show("")
