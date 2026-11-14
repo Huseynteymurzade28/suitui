@@ -2,7 +2,7 @@ include "../tui"
 
 define $center(y, text)
     s = Tui.size()
-    Tui.move((s.w - text->len()) / 2, y)
+    Tui.move((s.w - Tui.width(text)) / 2, y)
     Tui.write(text)
 
 Tui.init()
