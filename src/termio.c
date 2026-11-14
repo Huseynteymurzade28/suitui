@@ -13,6 +13,7 @@ static int raw_on;
 static char *on_restore;
 static int saved_stderr = -1;
 static FILE *errlog;
+static volatile sig_atomic_t resized;
 
 static void hold_stderr(void)
 {
@@ -59,13 +60,21 @@ static void on_signal(int sig)
     raise(sig);
 }
 
+static void on_winch(int sig)
+{
+    (void)sig;
+    resized = 1;
+}
+
 static void catch_signals(void)
 {
+    struct sigaction sa = { .sa_handler = on_winch };
     int sigs[] = { SIGTERM, SIGHUP, SIGQUIT, SIGSEGV, SIGABRT, SIGBUS, SIGFPE };
     size_t i;
 
     for (i = 0; i < sizeof(sigs) / sizeof(sigs[0]); i++)
         signal(sigs[i], on_signal);
+    sigaction(SIGWINCH, &sa, NULL);
 }
 
 static void termio_raw(seal_state *S)
@@ -117,12 +126,19 @@ static void termio_read(seal_state *S)
     struct pollfd p = { STDIN_FILENO, POLLIN, 0 };
     unsigned char c;
     int timeout = -1;
+    int n;
 
     seal_checkargcmax(S, 1);
     if (seal_gettop(S) == 1)
         timeout = seal_checkint(S, 0);
     fflush(stdout);
-    if (poll(&p, 1, timeout) <= 0 || read(STDIN_FILENO, &c, 1) != 1) {
+    n = resized ? 0 : poll(&p, 1, timeout);
+    if (resized) {
+        resized = 0;
+        seal_pushint(S, -2);
+        return;
+    }
+    if (n <= 0 || read(STDIN_FILENO, &c, 1) != 1) {
         seal_pushint(S, -1);
         return;
     }
