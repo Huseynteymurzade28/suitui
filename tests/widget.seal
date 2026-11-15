@@ -31,3 +31,21 @@ dump()
 Box.new("tiny", l)->draw(0, 0, 1, 1)
 l->draw(0, 0, 3, 1)
 dump()
+
+list = ListView.new(["one", "two", "three", "four", "five", "six", "seven", "eight"])
+Box.new("list", list)->draw(0, 0, 16, 5)
+dump()
+
+for key in ["down", "j", "j", "j", "up"]
+    list->key(key)
+print(list.selected, list.top)
+list->draw(0, 0, 16, 5)
+dump()
+
+print(list->key("pgdown"), list->key("pgdown"), list.selected)
+list->draw(0, 0, 8, 3)
+dump()
+
+list->key("home")
+ListView.new(["日本語 is wide", "b"])->draw(0, 0, 9, 3)
+dump()
