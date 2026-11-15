@@ -51,3 +51,11 @@ Utf8.width = define(s)
     for ch in Utf8.split(s)
         n += Utf8.cell(ch)
     return n
+
+Utf8.fit = define(s, w)
+    out = ""
+    for ch in Utf8.split(s)
+        w -= Utf8.cell(ch)
+        if w < 0 then return out
+        out += ch
+    return out
