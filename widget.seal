@@ -31,3 +31,59 @@ Box.draw = define(self, x, y, w, h)
 
 Box.new = define(title, child)
     return { title = title, child = child, border = "rounded", fg = "default", pad = 1, draw = Box.draw }
+
+$ListView = {}
+
+ListView.draw = define(self, x, y, w, h)
+    if w < 2 or h < 1 then return null
+    n = self.items->len()
+    self.page = h
+    if self.top > n - h then self.top = n - h
+    if self.top < 0 then self.top = 0
+    if self.selected < self.top then self.top = self.selected
+    if self.selected >= self.top + h then self.top = self.selected - h + 1
+    if n > h
+        w -= 1
+        size = h * h / n
+        if size < 1 then size = 1
+        at = self.top * (h - size) / (n - h)
+        Tui.fg(self.fg)
+        for i in h
+            Tui.move(x + w, y + i)
+            if i >= at and i < at + size
+                Tui.write("┃")
+            else
+                Tui.write("│")
+    for i in h
+        at = self.top + i
+        if at >= n then stop
+        Tui.reset()
+        Tui.fg(self.fg)
+        if at == self.selected
+            Tui.fg("black")
+            Tui.bg(self.hi)
+        line = Utf8.fit(self.items[at], w - 2)
+        Tui.move(x, y + i)
+        Tui.write(" " + line + Tui.repeat(" ", w - 1 - Utf8.width(line)))
+    Tui.reset()
+
+ListView.key = define(self, key)
+    last = self.items->len() - 1
+    at = self.selected
+    if key == "up" or key == "k" then at -= 1
+    if key == "down" or key == "j" then at += 1
+    if key == "pgup" then at -= self.page
+    if key == "pgdown" then at += self.page
+    if key == "home" or key == "g" then at = 0
+    if key == "end" or key == "G" then at = last
+    if at > last then at = last
+    if at < 0 then at = 0
+    moved = at != self.selected
+    self.selected = at
+    return moved
+
+ListView.new = define(items)
+    return {
+        items = items, selected = 0, top = 0, page = 1,
+        fg = "default", hi = "cyan", draw = ListView.draw, key = ListView.key,
+    }
