@@ -42,6 +42,7 @@ make run EX=09
 | `09` | snake |
 | `10` | Turkish, CJK and emoji lined up in a table |
 | `11` | Label and Box widgets |
+| `12` | a scrolling list of seals |
 
 Run them from the repo root.
 
@@ -82,6 +83,20 @@ box->draw(0, 0, Tui.w, Tui.h)
 
 <p align="center">
   <img src="docs/widgets.gif" alt="widgets example" width="560">
+</p>
+
+`ListView` keeps a selected item and scrolls to keep it in view. Hand it the keys you read,
+it moves on arrows, `j` `k`, page up and down, home and end.
+
+```
+list = ListView.new(["one", "two", "three"])
+list->draw(0, 0, 20, Tui.h)
+list->key(Tui.readkey())
+print(list.items[list.selected])
+```
+
+<p align="center">
+  <img src="docs/list.gif" alt="list example" width="560">
 </p>
 
 ## How it's built
