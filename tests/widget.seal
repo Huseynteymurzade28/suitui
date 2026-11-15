@@ -1,0 +1,33 @@
+include "../tui"
+
+define $dump()
+    for y in Tui.h
+        out = ""
+        for x in Tui.w
+            ch = Tui.chars[y * Tui.w + x]
+            if ch == " " then ch = "."
+            out += ch
+        print(out)
+    print("")
+    Tui.clear()
+
+Tui.resize(16, 5)
+
+l = Label.new("seal\n日本語\nway too long to fit")
+Box.new("box", l)->draw(0, 0, 16, 5)
+dump()
+
+l.align = "center"
+Box.new(null, l)->draw(1, 0, 14, 4)
+dump()
+
+l.align = "right"
+b = Box.new("b", l)
+b.border = "double"
+b.pad = 0
+Box.new(null, b)->draw(0, 0, 16, 5)
+dump()
+
+Box.new("tiny", l)->draw(0, 0, 1, 1)
+l->draw(0, 0, 3, 1)
+dump()
