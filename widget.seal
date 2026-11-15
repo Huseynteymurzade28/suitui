@@ -1,0 +1,33 @@
+$Label = {}
+
+Label.draw = define(self, x, y, w, h)
+    lines = self.text->split("\n")
+    Tui.fg(self.fg)
+    for i in lines->len()
+        if i >= h then stop
+        line = Utf8.fit(lines[i], w)
+        pad = w - Utf8.width(line)
+        if self.align == "left" then pad = 0
+        if self.align == "center" then pad /= 2
+        Tui.move(x + pad, y + i)
+        Tui.write(line)
+    Tui.reset()
+
+Label.new = define(text)
+    return { text = text, align = "left", fg = "default", draw = Label.draw }
+
+$Box = {}
+
+Box.draw = define(self, x, y, w, h)
+    if w < 2 or h < 2 then return null
+    edges = Tui.edges
+    Tui.border(self.border)
+    Tui.fg(self.fg)
+    Tui.box(x, y, w, h, self.title)
+    Tui.reset()
+    Tui.edges = edges
+    if self.child != null
+        self.child->draw(x + 1 + self.pad, y + 1, w - 2 - 2 * self.pad, h - 2)
+
+Box.new = define(title, child)
+    return { title = title, child = child, border = "rounded", fg = "default", pad = 1, draw = Box.draw }
