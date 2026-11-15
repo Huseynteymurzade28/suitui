@@ -10,15 +10,8 @@
   <a href="https://github.com/Huseynteymurzade28/suitui/actions"><img src="https://github.com/Huseynteymurzade28/suitui/actions/workflows/build.yml/badge.svg" alt="build"></a>
 </p>
 
----
-
 <p align="center">
   <img src="docs/snake.gif" alt="snake example" width="560">
-</p>
-
-<p align="center">
-  <img src="docs/paint.gif" alt="paint example" width="420">
-  <img src="docs/colors.png" alt="colors example" width="380">
 </p>
 
 ## Try it
@@ -28,6 +21,9 @@ git clone --recursive https://github.com/Huseynteymurzade28/suitui
 cd suitui
 make run EX=09
 ```
+
+<details>
+<summary>All examples</summary>
 
 | `EX=` | example |
 |---|---|
@@ -44,9 +40,9 @@ make run EX=09
 | `11` | Label and Box widgets |
 | `12` | a scrolling list of seals |
 
-Run them from the repo root.
+</details>
 
-## A taste
+## Drawing
 
 ```
 include "tui"
@@ -63,37 +59,28 @@ Tui.quit()
 print("you pressed", key)
 ```
 
-`Tui.readkey()` returns names like `up`, `ctrl+right`, `shift+tab`, `alt+x` or `ç`.
-It returns `resize` when the window changes size, `Tui.w` and `Tui.h` are already updated by then.
-`Tui.border("double")` picks the box style: `single`, `rounded`, `double` or `thick`.
-Wide characters (CJK, emoji) take two cells, `Tui.width(s)` tells how many columns a string needs.
-Colors can be names (`"red"`, `"bright_blue"`), 0-255, `"#rrggbb"` or `[r, g, b]`.
+- **Keys** come back as names: `up`, `ctrl+right`, `shift+tab`, `alt+x`, `ç`, and `resize` when the window changes size.
+- **Colors** are names (`"red"`, `"bright_blue"`), 0-255, `"#rrggbb"` or `[r, g, b]`.
+- **Borders** are `single`, `rounded`, `double` or `thick`, picked with `Tui.border(name)`.
+- **Wide characters** (CJK, emoji) take two cells, `Tui.width(s)` tells how many columns a string needs.
+- **Only changed cells** are sent to the terminal on each frame.
 
 ## Widgets
 
 A widget is a map with a `draw(x, y, w, h)` function, it paints itself into the rectangle it is given.
 
 ```
-label = Label.new("hello\nfrom a widget")
-label.align = "center"
-box = Box.new("title", label)
-box.border = "double"
-box->draw(0, 0, Tui.w, Tui.h)
-```
-
-<p align="center">
-  <img src="docs/widgets.gif" alt="widgets example" width="560">
-</p>
-
-`ListView` keeps a selected item and scrolls to keep it in view. Hand it the keys you read,
-it moves on arrows, `j` `k`, page up and down, home and end.
-
-```
 list = ListView.new(["one", "two", "three"])
-list->draw(0, 0, 20, Tui.h)
+box = Box.new("pick one", list)
+box->draw(0, 0, Tui.w, Tui.h)
 list->key(Tui.readkey())
-print(list.items[list.selected])
 ```
+
+| widget | |
+|---|---|
+| `Label` | text, aligned left, center or right |
+| `Box` | a border and a title around another widget |
+| `ListView` | a scrolling list with a selected item |
 
 <p align="center">
   <img src="docs/list.gif" alt="list example" width="560">
@@ -101,12 +88,10 @@ print(list.items[list.selected])
 
 ## How it's built
 
-Everything is Seal (`tui.seal`, `key.seal`, `color.seal`, `utf8.seal`, `widget.seal`) except `termio.so`, a small C module
-for what Seal can't do on its own yet: raw mode, reading a byte with a timeout and the terminal
-size. The issues labeled [upstream](https://github.com/Huseynteymurzade28/suitui/labels/upstream)
-track what Seal would need for that module to go away.
-
-## Status
+Everything is Seal except `termio.so`, a small C module for what Seal can't do on its own yet:
+raw mode, reading a byte with a timeout and the terminal size. The
+[upstream](https://github.com/Huseynteymurzade28/suitui/labels/upstream) issues track what Seal
+would need for that module to go away.
 
 Early, changes every day. The plan lives in the
 [roadmap](https://github.com/Huseynteymurzade28/suitui/labels/roadmap) issues.
