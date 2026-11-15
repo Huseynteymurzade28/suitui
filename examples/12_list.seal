@@ -1,0 +1,76 @@
+include "../tui"
+
+define $seal(name, latin, home, dm, note)
+    return { name = name, latin = latin, home = home, dm = dm, note = note }
+
+$SEALS = [
+    seal("Harbor seal", "Phoca vitulina", "North Atlantic and Pacific coasts", 18, "the one you are most likely to meet"),
+    seal("Grey seal", "Halichoerus grypus", "both sides of the North Atlantic", 25, "the latin name means\nhook-nosed sea pig"),
+    seal("Harp seal", "Pagophilus groenlandicus", "Arctic and North Atlantic ice", 17, "pups are born in a white coat"),
+    seal("Ringed seal", "Pusa hispida", "all around the Arctic", 15, "keeps its breathing holes\nopen through the winter ice"),
+    seal("Baikal seal", "Pusa sibirica", "Lake Baikal", 13, "the only seal that never\nsees salt water"),
+    seal("Caspian seal", "Pusa caspica", "the Caspian Sea", 14, "the only marine mammal\nof the Caspian"),
+    seal("Bearded seal", "Erignathus barbatus", "shallow Arctic seas", 24, "feels for food on the seabed\nwith its whiskers"),
+    seal("Hooded seal", "Cystophora cristata", "North Atlantic pack ice", 25, "males inflate a red balloon\nout of one nostril"),
+    seal("Ribbon seal", "Histriophoca fasciata", "Bering and Okhotsk seas", 16, "dark coat with four white bands"),
+    seal("Leopard seal", "Hydrurga leptonyx", "Antarctic pack ice", 33, "hunts penguins"),
+    seal("Weddell seal", "Leptonychotes weddellii", "Antarctic fast ice", 30, "breeds further south than\nany other mammal"),
+    seal("Crabeater seal", "Lobodon carcinophaga", "Antarctic pack ice", 24, "eats krill, not crabs"),
+    seal("Ross seal", "Ommatophoca rossii", "deep in the Antarctic pack ice", 21, "rarely seen, sounds like a siren"),
+    seal("Southern elephant seal", "Mirounga leonina", "sub-Antarctic islands", 58, "the biggest seal there is"),
+    seal("Northern elephant seal", "Mirounga angustirostris", "Pacific coast of North America", 45, "dives deeper than a kilometer"),
+    seal("Mediterranean monk seal", "Monachus monachus", "Mediterranean and Aegean caves", 24, "only a few hundred are left"),
+]
+
+$NAMES = []
+for s in SEALS
+    NAMES->push(s.name)
+
+$LIST = ListView.new(NAMES)
+LIST.hi = "#8ecae6"
+$LEFT = Box.new("seals 🦭", LIST)
+LEFT.pad = 0
+LEFT.fg = "#8ecae6"
+$RIGHT = Box.new(null, null)
+RIGHT.fg = "#adb5bd"
+$LATIN = Label.new("")
+LATIN.fg = "#ff8fab"
+$HOME = Label.new("")
+$NOTE = Label.new("")
+NOTE.fg = "#adb5bd"
+$SIZE = Label.new("")
+SIZE.fg = "#95d5b2"
+$HINT = Label.new("")
+HINT.align = "center"
+HINT.fg = "bright_black"
+
+define $scene()
+    s = SEALS[LIST.selected]
+    RIGHT.title = s.name
+    LATIN.text = s.latin
+    HOME.text = "lives   " + s.home
+    NOTE.text = s.note
+    bar = s.dm / 2
+    SIZE.text = Tui.repeat("█", bar) + Tui.repeat("░", 30 - bar) + "\n" + string(s.dm / 10) + "." + string(s.dm % 10) + " m long"
+    HINT.text = string(LIST.selected + 1) + "/" + string(SEALS->len()) + "   up down, pgup pgdown, home end, q to quit"
+
+    Tui.clear()
+    lw = 28
+    h = Tui.h - 1
+    LEFT->draw(0, 0, lw, h)
+    RIGHT->draw(lw, 0, Tui.w - lw, h)
+    x = lw + 3
+    w = Tui.w - lw - 6
+    LATIN->draw(x, 2, w, 1)
+    HOME->draw(x, 4, w, 1)
+    NOTE->draw(x, 6, w, 2)
+    SIZE->draw(x, h - 4, w, 2)
+    HINT->draw(0, h, Tui.w, 1)
+
+Tui.init()
+key = ""
+while key != "q" and key != "ctrl+c"
+    scene()
+    key = Tui.readkey()
+    LIST->key(key)
+Tui.quit()
