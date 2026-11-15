@@ -1,0 +1,36 @@
+include "../tui"
+
+$ALIGNS = ["left", "center", "right"]
+$COLORS = ["#8ecae6", "#ff8fab", "#95d5b2"]
+$BORDERS = ["rounded", "double", "thick"]
+$TEXT = "a label keeps\nits own text\nand clips 🦭 what does not fit"
+
+define $card(i)
+    label = Label.new(TEXT)
+    label.align = ALIGNS[i]
+    box = Box.new(ALIGNS[i], label)
+    box.fg = COLORS[i]
+    box.border = BORDERS[i]
+    return box
+
+$CARDS = [card(0), card(1), card(2)]
+$HINT = Label.new("resize the window, q to quit")
+HINT.align = "center"
+HINT.fg = "bright_black"
+$ROOT = Box.new("widgets", null)
+ROOT.fg = "#adb5bd"
+
+define $scene()
+    Tui.clear()
+    ROOT->draw(0, 0, Tui.w, Tui.h - 1)
+    w = (Tui.w - 4) / 3
+    for i in 3
+        CARDS[i]->draw(2 + i * w, 2, w, Tui.h - 5)
+    HINT->draw(0, Tui.h - 1, Tui.w, 1)
+
+Tui.init()
+key = ""
+while key != "q" and key != "ctrl+c"
+    scene()
+    key = Tui.readkey()
+Tui.quit()
