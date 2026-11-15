@@ -41,6 +41,7 @@ make run EX=09
 | `08` | border styles |
 | `09` | snake |
 | `10` | Turkish, CJK and emoji lined up in a table |
+| `11` | Label and Box widgets |
 
 Run them from the repo root.
 
@@ -67,9 +68,25 @@ It returns `resize` when the window changes size, `Tui.w` and `Tui.h` are alread
 Wide characters (CJK, emoji) take two cells, `Tui.width(s)` tells how many columns a string needs.
 Colors can be names (`"red"`, `"bright_blue"`), 0-255, `"#rrggbb"` or `[r, g, b]`.
 
+## Widgets
+
+A widget is a map with a `draw(x, y, w, h)` function, it paints itself into the rectangle it is given.
+
+```
+label = Label.new("hello\nfrom a widget")
+label.align = "center"
+box = Box.new("title", label)
+box.border = "double"
+box->draw(0, 0, Tui.w, Tui.h)
+```
+
+<p align="center">
+  <img src="docs/widgets.gif" alt="widgets example" width="560">
+</p>
+
 ## How it's built
 
-Everything is Seal (`tui.seal`, `key.seal`, `color.seal`, `utf8.seal`) except `termio.so`, a small C module
+Everything is Seal (`tui.seal`, `key.seal`, `color.seal`, `utf8.seal`, `widget.seal`) except `termio.so`, a small C module
 for what Seal can't do on its own yet: raw mode, reading a byte with a timeout and the terminal
 size. The issues labeled [upstream](https://github.com/Huseynteymurzade28/suitui/labels/upstream)
 track what Seal would need for that module to go away.
