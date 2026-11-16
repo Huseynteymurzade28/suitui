@@ -39,6 +39,7 @@ make run EX=09
 | `10` | Turkish, CJK and emoji lined up in a table |
 | `11` | Label and Box widgets |
 | `12` | a scrolling list of seals |
+| `13` | rows and columns that follow the window |
 
 </details>
 
@@ -84,6 +85,24 @@ list->key(Tui.readkey())
 
 <p align="center">
   <img src="docs/list.gif" alt="list example" width="560">
+</p>
+
+## Layout
+
+`Row` puts widgets side by side, `Col` stacks them. Each part is a widget and a size:
+a number of cells, a percentage, or `"fill"` for a share of whatever is left.
+
+```
+body = Row.new([[sidebar, 20], [main, "fill"], [preview, "30%"]])
+root = Col.new([[header, 3], [body, "fill"], [status, 1]])
+root->draw(0, 0, Tui.w, Tui.h)
+```
+
+Rows and columns are widgets too, so they nest. `null` in place of a widget leaves the space empty,
+`row.gap = 1` puts a cell between the parts.
+
+<p align="center">
+  <img src="docs/layout.gif" alt="layout example" width="560">
 </p>
 
 ## How it's built
