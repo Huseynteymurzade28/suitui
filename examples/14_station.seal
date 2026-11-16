@@ -75,12 +75,12 @@ define $seal(name, fg, deep, period, phase)
     }
 
 $SEALS = [
-    seal("Pamuk", "#8ecae6", 420, 4.5, 0.0),
-    seal("Boncuk", "#ff8fab", 260, 3.0, 2.1),
-    seal("Zeytin", "#95d5b2", 600, 6.0, 4.0),
-    seal("Fıstık", "#ffd166", 180, 2.2, 1.2),
-    seal("Karamel", "#cdb4db", 340, 3.8, 5.3),
-    seal("Duman", "#adb5bd", 510, 5.2, 3.1),
+    seal("Cotton", "#8ecae6", 420, 4.5, 0.0),
+    seal("Button", "#ff8fab", 260, 3.0, 2.1),
+    seal("Olive", "#95d5b2", 600, 6.0, 4.0),
+    seal("Peanut", "#ffd166", 180, 2.2, 1.2),
+    seal("Caramel", "#cdb4db", 340, 3.8, 5.3),
+    seal("Smoke", "#adb5bd", 510, 5.2, 3.1),
 ]
 
 $SIM = { tick = 0 }
