@@ -24,6 +24,7 @@ test: all
 	$(SEAL) tests/utf8.seal | diff -u tests/utf8.expected -
 	$(SEAL) tests/wide.seal | diff -u tests/wide.expected -
 	$(SEAL) tests/widget.seal | diff -u tests/widget.expected -
+	$(SEAL) tests/layout.seal | diff -u tests/layout.expected -
 	@echo ok
 
 clean:

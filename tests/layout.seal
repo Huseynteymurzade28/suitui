@@ -1,0 +1,39 @@
+include "../tui"
+
+define $dump()
+    for y in Tui.h
+        out = ""
+        for x in Tui.w
+            ch = Tui.chars[y * Tui.w + x]
+            if ch == " " then ch = "."
+            out += ch
+        print(out)
+    print("")
+    Tui.clear()
+
+define $pane(name)
+    return Box.new(name, null)
+
+parts = [[null, 10], [null, "50%"], [null, "fill"], [null, "fill"]]
+print(Layout.sizes(parts, 40, 0))
+print(Layout.sizes(parts, 41, 1))
+print(Layout.sizes(parts, 12, 0))
+print(Layout.sizes(parts, 2, 1))
+print(Layout.sizes([], 10, 1))
+
+Tui.resize(24, 6)
+
+row = Row.new([[pane("a"), 6], [pane("b"), "fill"], [pane("c"), "25%"]])
+row->draw(0, 0, 24, 6)
+dump()
+
+row.gap = 1
+row->draw(0, 0, 24, 3)
+dump()
+
+col = Col.new([[Label.new("top"), 1], [row, "fill"], [null, 1], [Label.new("bottom"), 1]])
+col->draw(0, 0, 24, 6)
+dump()
+
+Row.new([[pane("x"), "fill"], [col, 16]])->draw(0, 0, 24, 6)
+dump()
