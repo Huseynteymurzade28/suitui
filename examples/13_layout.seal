@@ -1,0 +1,67 @@
+include "../tui"
+
+define $drawpane(self, x, y, w, h)
+    box = Box.new(self.title, null)
+    box.fg = self.fg
+    box->draw(x, y, w, h)
+    if w < 3 or h < 3 then return null
+    size = Label.new(string(w) + "x" + string(h))
+    size.align = "center"
+    size->draw(x + 1, y + h / 2, w - 2, 1)
+
+define $pane(size)
+    fg = "#ff8fab"
+    if typeof(size) == "integer" then fg = "#8ecae6"
+    if size == "fill" then fg = "#95d5b2"
+    return [{ title = string(size), fg = fg, draw = drawpane }, size]
+
+$SPLITS = []
+
+define $row(parts, size)
+    r = Row.new(parts)
+    SPLITS->push(r)
+    return [r, size]
+
+define $col(parts, size)
+    c = Col.new(parts)
+    SPLITS->push(c)
+    return [c, size]
+
+$SIDEBAR = col([
+    pane(3),
+    row([pane(20), pane("fill"), pane("30%")], "fill"),
+    pane(3),
+], "fill")
+
+$GRID = row([
+    col([pane("fill"), pane("fill"), pane("fill")], "50%"),
+    col([pane("25%"), pane("fill"), pane("25%")], "fill"),
+], "fill")
+
+$MIXED = row([
+    pane("20%"),
+    col([
+        pane(4),
+        row([pane("fill"), pane(12), pane("fill")], "fill"),
+        pane("40%"),
+    ], "fill"),
+    pane(10),
+], "fill")
+
+$LAYOUTS = [SIDEBAR, GRID, MIXED]
+$HINT = Label.new("space next layout, g gap, resize the window, q to quit")
+HINT.align = "center"
+HINT.fg = "bright_black"
+
+Tui.init()
+at = 0
+key = ""
+while key != "q" and key != "ctrl+c"
+    Tui.clear()
+    Col.new([LAYOUTS[at], [HINT, 1]])->draw(0, 0, Tui.w, Tui.h)
+    key = Tui.readkey()
+    if key == "space" then at = (at + 1) % LAYOUTS->len()
+    if key == "g"
+        for s in SPLITS
+            s.gap = 1 - s.gap
+Tui.quit()
