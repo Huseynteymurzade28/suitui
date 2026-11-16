@@ -49,3 +49,8 @@ dump()
 list->key("home")
 ListView.new(["日本語 is wide", "b"])->draw(0, 0, 9, 3)
 dump()
+
+Box.new("a long title", null)->draw(0, 0, 10, 3)
+Box.new("日本語", null)->draw(10, 0, 6, 3)
+Box.new("abc", null)->draw(0, 3, 5, 2)
+dump()
