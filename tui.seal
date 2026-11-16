@@ -166,7 +166,8 @@ Tui.border = define(name)
 Tui.box = define(x, y, w, h, title)
     e = Tui.edges
     top = Tui.repeat(e[0], w - 2)
-    if title != null
+    if title != null then title = Utf8.fit(title, w - 5)
+    if title != null and title != ""
         top = e[0] + " " + title + " " + Tui.repeat(e[0], w - 5 - Tui.width(title))
     Tui.move(x, y)
     Tui.write(e[2] + top + e[3])
