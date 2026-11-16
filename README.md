@@ -40,6 +40,7 @@ make run EX=09
 | `11` | Label and Box widgets |
 | `12` | a scrolling list of seals |
 | `13` | rows and columns that follow the window |
+| `14` | a seal station, charts and a log laid out with rows and columns |
 
 </details>
 
@@ -88,6 +89,10 @@ list->key(Tui.readkey())
 </p>
 
 ## Layout
+
+<p align="center">
+  <img src="docs/station.gif" alt="station example" width="560">
+</p>
 
 `Row` puts widgets side by side, `Col` stacks them. Each part is a widget and a size:
 a number of cells, a percentage, or `"fill"` for a share of whatever is left.
