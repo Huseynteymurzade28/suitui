@@ -31,8 +31,6 @@ LIST.hi = "#8ecae6"
 $LEFT = Box.new("seals 🦭", LIST)
 LEFT.pad = 0
 LEFT.fg = "#8ecae6"
-$RIGHT = Box.new(null, null)
-RIGHT.fg = "#adb5bd"
 $LATIN = Label.new("")
 LATIN.fg = "#ff8fab"
 $HOME = Label.new("")
@@ -43,6 +41,25 @@ SIZE.fg = "#95d5b2"
 $HINT = Label.new("")
 HINT.align = "center"
 HINT.fg = "bright_black"
+
+$DETAILS = Col.new([
+    [null, 1],
+    [LATIN, 1],
+    [null, 1],
+    [HOME, 1],
+    [null, 1],
+    [NOTE, 2],
+    [null, "fill"],
+    [SIZE, 2],
+    [null, 1],
+])
+$RIGHT = Box.new(null, DETAILS)
+RIGHT.fg = "#adb5bd"
+RIGHT.pad = 2
+$ROOT = Col.new([
+    [Row.new([[LEFT, 28], [RIGHT, "fill"]]), "fill"],
+    [HINT, 1],
+])
 
 define $scene()
     s = SEALS[LIST.selected]
@@ -55,17 +72,7 @@ define $scene()
     HINT.text = string(LIST.selected + 1) + "/" + string(SEALS->len()) + "   up down, pgup pgdown, home end, q to quit"
 
     Tui.clear()
-    lw = 28
-    h = Tui.h - 1
-    LEFT->draw(0, 0, lw, h)
-    RIGHT->draw(lw, 0, Tui.w - lw, h)
-    x = lw + 3
-    w = Tui.w - lw - 6
-    LATIN->draw(x, 2, w, 1)
-    HOME->draw(x, 4, w, 1)
-    NOTE->draw(x, 6, w, 2)
-    SIZE->draw(x, h - 4, w, 2)
-    HINT->draw(0, h, Tui.w, 1)
+    ROOT->draw(0, 0, Tui.w, Tui.h)
 
 Tui.init()
 key = ""
