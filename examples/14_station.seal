@@ -1,0 +1,193 @@
+include "../tui"
+include "math"
+
+$BLOCKS = [" ", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+$WATER = ["#8ecae6", "#61a5c2", "#2c7da0", "#01497c"]
+$PULSE = ["#ff4d6d", "#ff8fab", "#ffb3c6"]
+
+define $drawchart(self, x, y, w, h)
+    from = self.values->len() - w
+    shades = self.shades->len()
+    for r in h
+        Tui.fg(self.shades[r * shades / h])
+        base = (h - 1 - r) * 8
+        if self.hang
+            base = r * 8
+            Tui.attr("reverse")
+        line = ""
+        for c in w
+            v = 0
+            if from + c >= 0 then v = self.values[from + c] * h * 8 / self.max - base
+            if v < 0 then v = 0
+            if v > 8 then v = 8
+            if self.hang then v = 8 - v
+            line += BLOCKS[v]
+        Tui.move(x, y + r)
+        Tui.write(line)
+        Tui.reset()
+
+define $chart(max, shades, hang)
+    return { values = [], max = max, shades = shades, hang = hang, draw = drawchart }
+
+define $drawgauges(self, x, y, w, h)
+    bar = w - 13
+    if bar < 1 then return null
+    for i in self.rows->len()
+        if i >= h then stop
+        row = self.rows[i]
+        full = row.value * bar / 100
+        Tui.move(x, y + i)
+        Tui.fg(row.fg)
+        Tui.write(pad(row.name, 8) + Tui.repeat("█", full))
+        Tui.fg("bright_black")
+        Tui.write(Tui.repeat("░", bar - full))
+        Tui.reset()
+        Tui.write(lpad(string(row.value), 4) + "%")
+
+define $drawlog(self, x, y, w, h)
+    from = self.lines->len() - h
+    if from < 0 then from = 0
+    for i in h
+        if from + i >= self.lines->len() then stop
+        line = self.lines[from + i]
+        Tui.move(x, y + i)
+        Tui.fg("bright_black")
+        Tui.write(Utf8.fit(line.time + " ", w))
+        Tui.fg(line.fg)
+        Tui.write(Utf8.fit(line.text, w - 6))
+    Tui.reset()
+
+define $pad(s, w)
+    return s + Tui.repeat(" ", w - Tui.width(s))
+
+define $lpad(s, w)
+    return Tui.repeat(" ", w - Tui.width(s)) + s
+
+define $two(n)
+    if n < 10 then return "0" + string(n)
+    return string(n)
+
+define $seal(name, fg, deep, period, phase)
+    return {
+        name = name, fg = fg, deep = deep, period = period, phase = phase,
+        depth = 0, bpm = 100, o2 = 100, deepest = 0,
+        dives = chart(deep, WATER, true), heart = chart(130, PULSE, false),
+    }
+
+$SEALS = [
+    seal("Pamuk", "#8ecae6", 420, 4.5, 0.0),
+    seal("Boncuk", "#ff8fab", 260, 3.0, 2.1),
+    seal("Zeytin", "#95d5b2", 600, 6.0, 4.0),
+    seal("Fıstık", "#ffd166", 180, 2.2, 1.2),
+    seal("Karamel", "#cdb4db", 340, 3.8, 5.3),
+    seal("Duman", "#adb5bd", 510, 5.2, 3.1),
+]
+
+$SIM = { tick = 0 }
+$LOG = { lines = [], draw = drawlog }
+$O2 = { rows = [], draw = drawgauges }
+$LIST = ListView.new([])
+LIST.hi = "#8ecae6"
+
+define $say(s, text)
+    m = 6 * 60 + SIM.tick
+    LOG.lines->push({ time = two(m / 60 % 24) + ":" + two(m % 60), text = text, fg = s.fg })
+    if LOG.lines->len() > 60 then LOG.lines->remove(0)
+
+define $step(s)
+    wave = Math.sin(SIM.tick / s.period + s.phase)
+    depth = 0
+    if wave > 0.1 then depth = integer(s.deep * (wave - 0.1) / 0.9) - Math.random(s.deep / 10)
+    if depth < 0 then depth = 0
+    if depth > 0
+        if s.depth == 0
+            say(s, "▼ " + s.name)
+            s.deepest = 0
+        s.o2 -= 3 + Math.random(3)
+        if depth > s.deepest then s.deepest = depth
+    else
+        if s.depth > 0 then say(s, "▲ " + s.name + " " + string(s.deepest) + " m")
+        s.o2 += 6
+    if s.o2 > 100 then s.o2 = 100
+    if s.o2 < 4 then s.o2 = 4
+    s.depth = depth
+    s.bpm = 108 - 84 * depth / s.deep + Math.random(8)
+    s.dives.values->push(depth)
+    s.heart.values->push(s.bpm)
+    if s.dives.values->len() > 300
+        s.dives.values->remove(0)
+        s.heart.values->remove(0)
+
+define $tick()
+    SIM.tick += 1
+    LIST.items = []
+    O2.rows = []
+    for s in SEALS
+        step(s)
+        where = "  on the ice"
+        if s.depth > 0 then where = "▼ " + string(s.depth) + " m"
+        LIST.items->push(pad(s.name, 9) + where)
+        O2.rows->push({ name = s.name, value = s.o2, fg = s.fg })
+
+$TITLE = Label.new(" 🦭 seal station")
+$CLOCK = Label.new("")
+CLOCK.align = "right"
+CLOCK.fg = "bright_black"
+$HINT = Label.new("up down pick a seal, space pause, g gap, q to quit")
+HINT.align = "center"
+HINT.fg = "bright_black"
+
+$COLONY = Box.new("colony", LIST)
+COLONY.pad = 0
+COLONY.fg = "#8ecae6"
+$OXYGEN = Box.new("oxygen", O2)
+OXYGEN.fg = "#adb5bd"
+$DEPTH = Box.new("", null)
+DEPTH.pad = 0
+$HEART = Box.new("", null)
+HEART.pad = 0
+$NOTES = Box.new("log", LOG)
+NOTES.fg = "#adb5bd"
+
+$SIDE = Col.new([[COLONY, "fill"], [OXYGEN, 8]])
+$CHARTS = Col.new([[DEPTH, "fill"], [HEART, "35%"]])
+$BODY = Row.new([[SIDE, 28], [CHARTS, "fill"], [NOTES, "30%"]])
+$ROOT = Col.new([
+    [Row.new([[TITLE, "fill"], [CLOCK, 20]]), 1],
+    [BODY, "fill"],
+    [HINT, 1],
+])
+$SPLITS = [SIDE, CHARTS, BODY]
+
+define $scene()
+    s = SEALS[LIST.selected]
+    m = 6 * 60 + SIM.tick
+    CLOCK.text = "day " + string(m / 1440 + 1) + "  " + two(m / 60 % 24) + ":" + two(m % 60) + " "
+    DEPTH.title = s.name + " · depth " + string(s.depth) + " m"
+    DEPTH.child = s.dives
+    DEPTH.fg = s.fg
+    HEART.title = "heart " + string(s.bpm) + " bpm"
+    HEART.child = s.heart
+    HEART.fg = "#ff8fab"
+    Tui.clear()
+    ROOT->draw(0, 0, Tui.w, Tui.h)
+
+for i in 80
+    tick()
+LOG.lines = []
+
+Tui.init()
+paused = false
+key = ""
+while key != "q" and key != "ctrl+c"
+    scene()
+    wait = 150
+    if paused then wait = -1
+    key = Tui.pollkey(wait)
+    if key == null and not paused then tick()
+    if key == "space" then paused = not paused
+    if key == "g"
+        for s in SPLITS
+            s.gap = 1 - s.gap
+    LIST->key(key)
+Tui.quit()
