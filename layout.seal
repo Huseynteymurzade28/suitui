@@ -1,0 +1,49 @@
+$Layout = {}
+
+Layout.sizes = define(parts, total, gap)
+    total -= gap * (parts->len() - 1)
+    if total < 0 then total = 0
+    sizes = []
+    left = total
+    fills = 0
+    for p in parts
+        n = 0
+        if typeof(p[1]) == "integer"
+            n = p[1]
+        else if p[1] == "fill"
+            fills += 1
+        else
+            n = total * integer(p[1]->split("%")[0]) / 100
+        if n > left then n = left
+        left -= n
+        sizes->push(n)
+    for i in parts->len()
+        if parts[i][1] == "fill"
+            sizes[i] = left / fills
+            left -= sizes[i]
+            fills -= 1
+    return sizes
+
+$Row = {}
+
+Row.draw = define(self, x, y, w, h)
+    sizes = Layout.sizes(self.parts, w, self.gap)
+    for i in sizes->len()
+        child = self.parts[i][0]
+        if child != null and sizes[i] > 0 then child->draw(x, y, sizes[i], h)
+        x += sizes[i] + self.gap
+
+Row.new = define(parts)
+    return { parts = parts, gap = 0, draw = Row.draw }
+
+$Col = {}
+
+Col.draw = define(self, x, y, w, h)
+    sizes = Layout.sizes(self.parts, h, self.gap)
+    for i in sizes->len()
+        child = self.parts[i][0]
+        if child != null and sizes[i] > 0 then child->draw(x, y, w, sizes[i])
+        y += sizes[i] + self.gap
+
+Col.new = define(parts)
+    return { parts = parts, gap = 0, draw = Col.draw }
