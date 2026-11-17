@@ -281,3 +281,39 @@ TextInput.new = define(hint)
         text = "", at = 0, left = 0, area = [0, 0, 0, 0], hint = hint, fg = "default", bg = null, focused = true,
         draw = TextInput.draw, key = TextInput.key, set = TextInput.set,
     }
+
+$Button = {}
+
+Button.draw = define(self, x, y, w, h)
+    if w < 1 or h < 1 then return null
+    text = Utf8.fit(" " + self.text + " ", w)
+    self.area = [x, y, Utf8.width(text), 1]
+    Tui.reset()
+    Tui.fg(self.fg)
+    Tui.bg(self.bg)
+    if self.focused
+        Tui.fg("black")
+        Tui.bg(self.hi)
+        Tui.attr("bold")
+    if self.down then Tui.attr("reverse")
+    Tui.move(x, y)
+    Tui.write(text)
+    Tui.reset()
+
+Button.key = define(self, key)
+    if key == "click"
+        self.down = true
+        return true
+    if key == "release" and self.down
+        self.down = false
+        if not Tui.hit(self) then return true
+    else if key != "enter" and key != "space"
+        return false
+    if self.press != null then self.press()
+    return true
+
+Button.new = define(text, press)
+    return {
+        text = text, press = press, area = [0, 0, 0, 0], down = false, focused = false,
+        fg = "white", bg = "bright_black", hi = "cyan", draw = Button.draw, key = Button.key,
+    }
