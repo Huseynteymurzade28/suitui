@@ -43,6 +43,7 @@ make run EX=09
 | `14` | a seal station, charts and a log laid out with rows and columns |
 | `15` | three lists, tab moves between them |
 | `16` | seal finder: search as you type, log a sighting with a small form |
+| `17` | paint with the mouse: brushes, a palette, seal stamps |
 
 </details>
 
@@ -63,7 +64,7 @@ Tui.quit()
 print("you pressed", key)
 ```
 
-- **Keys** come back as names: `up`, `ctrl+right`, `shift+tab`, `alt+x`, `ç`, and `resize` when the window changes size.
+- **Keys** come back as names: `up`, `ctrl+right`, `shift+tab`, `alt+x`, `ç`, `click`, and `resize` when the window changes size.
 - **Colors** are names (`"red"`, `"bright_blue"`), 0-255, `"#rrggbb"` or `[r, g, b]`.
 - **Borders** are `single`, `rounded`, `double` or `thick`, picked with `Tui.border(name)`.
 - **Wide characters** (CJK, emoji) take two cells, `Tui.width(s)` tells how many columns a string needs.
@@ -86,6 +87,7 @@ list->key(Tui.readkey())
 | `Box` | a border and a title around another widget |
 | `ListView` | a scrolling list with a selected item |
 | `TextInput` | one line of text with a cursor, scrolls when it gets long |
+| `Button` | calls a function on enter, space or a click |
 
 <p align="center">
   <img src="docs/list.gif" alt="list example" width="560">
@@ -139,6 +141,30 @@ Ctrl+U clears everything before the cursor. `key` returns true when the text or 
 
 <p align="center">
   <img src="docs/finder.gif" alt="seal finder example" width="560">
+</p>
+
+## Mouse
+
+```
+Tui.track("click")
+key = Tui.readkey()
+if key == "click" then print(Tui.mouse.x, Tui.mouse.y)
+```
+
+Clicks come in as keys too: `click`, `rightclick`, `middleclick`, `release`, `drag`, `wheelup`,
+`wheeldown`, with `ctrl+`, `alt+` and `shift+` in front when held. `Tui.mouse` has the position.
+`Tui.track("move")` also sends `move` when nothing is pressed, `"off"` stops it.
+
+`Focus` hands clicks to the widget under the pointer and focuses it. Lists select what you click and
+scroll with the wheel or by dragging the scrollbar, a text input moves its cursor to the click.
+
+```
+save = Button.new("save", define() print("saved"))
+focus = Focus.new([list, input, save])
+```
+
+<p align="center">
+  <img src="docs/canvas.gif" alt="canvas example" width="560">
 </p>
 
 ## How it's built
