@@ -23,6 +23,10 @@ Box.draw = define(self, x, y, w, h)
     edges = Tui.edges
     Tui.border(self.border)
     Tui.fg(self.fg)
+    if self.hi != null and self.child != null and Map.has(self.child, "focused")
+        if self.child.focused
+            Tui.fg(self.hi)
+            Tui.attr("bold")
     Tui.box(x, y, w, h, self.title)
     Tui.reset()
     Tui.edges = edges
@@ -30,7 +34,7 @@ Box.draw = define(self, x, y, w, h)
         self.child->draw(x + 1 + self.pad, y + 1, w - 2 - 2 * self.pad, h - 2)
 
 Box.new = define(title, child)
-    return { title = title, child = child, border = "rounded", fg = "default", pad = 1, draw = Box.draw }
+    return { title = title, child = child, border = "rounded", fg = "default", pad = 1, hi = null, draw = Box.draw }
 
 $ListView = {}
 
@@ -62,6 +66,7 @@ ListView.draw = define(self, x, y, w, h)
         if at == self.selected
             Tui.fg("black")
             Tui.bg(self.hi)
+            if not self.focused then Tui.bg("bright_black")
         line = Utf8.fit(self.items[at], w - 2)
         Tui.move(x, y + i)
         Tui.write(" " + line + Tui.repeat(" ", w - 1 - Utf8.width(line)))
@@ -85,5 +90,29 @@ ListView.key = define(self, key)
 ListView.new = define(items)
     return {
         items = items, selected = 0, top = 0, page = 1,
-        fg = "default", hi = "cyan", draw = ListView.draw, key = ListView.key,
+        fg = "default", hi = "cyan", focused = true, draw = ListView.draw, key = ListView.key,
     }
+
+$Focus = {}
+
+Focus.set = define(self, at)
+    n = self.items->len()
+    self.at = (at % n + n) % n
+    for i in n
+        self.items[i].focused = i == self.at
+    return true
+
+Focus.key = define(self, key)
+    if key == "tab" then return self->set(self.at + 1)
+    if key == "shift+tab" then return self->set(self.at - 1)
+    w = self.items[self.at]
+    if Map.has(w, "key") then return w->key(key)
+    return false
+
+Focus.current = define(self)
+    return self.items[self.at]
+
+Focus.new = define(items)
+    f = { items = items, at = 0, set = Focus.set, key = Focus.key, current = Focus.current }
+    f->set(0)
+    return f
