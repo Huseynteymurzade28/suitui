@@ -1,0 +1,140 @@
+include "../tui"
+
+define $seal(name, latin, home, note)
+    return { name = name, latin = latin, home = home, note = note, seen = [] }
+
+$SEALS = [
+    seal("Harbor seal", "Phoca vitulina", "North Atlantic and Pacific coasts", "the one you are most likely to meet"),
+    seal("Grey seal", "Halichoerus grypus", "both sides of the North Atlantic", "the latin name means hook-nosed sea pig"),
+    seal("Harp seal", "Pagophilus groenlandicus", "Arctic and North Atlantic ice", "pups are born in a white coat"),
+    seal("Ringed seal", "Pusa hispida", "all around the Arctic", "keeps its breathing holes open through the winter"),
+    seal("Baikal seal", "Pusa sibirica", "Lake Baikal", "the only seal that never sees salt water"),
+    seal("Caspian seal", "Pusa caspica", "the Caspian Sea", "the only marine mammal of the Caspian"),
+    seal("Bearded seal", "Erignathus barbatus", "shallow Arctic seas", "feels for food with its whiskers"),
+    seal("Hooded seal", "Cystophora cristata", "North Atlantic pack ice", "males inflate a red balloon out of one nostril"),
+    seal("Ribbon seal", "Histriophoca fasciata", "Bering and Okhotsk seas", "dark coat with four white bands"),
+    seal("Leopard seal", "Hydrurga leptonyx", "Antarctic pack ice", "hunts penguins"),
+    seal("Weddell seal", "Leptonychotes weddellii", "Antarctic fast ice", "breeds further south than any other mammal"),
+    seal("Crabeater seal", "Lobodon carcinophaga", "Antarctic pack ice", "eats krill, not crabs"),
+    seal("Ross seal", "Ommatophoca rossii", "deep in the Antarctic pack ice", "rarely seen, sounds like a siren"),
+    seal("Southern elephant seal", "Mirounga leonina", "sub-Antarctic islands", "the biggest seal there is"),
+    seal("Northern elephant seal", "Mirounga angustirostris", "Pacific coast of North America", "dives deeper than a kilometer"),
+    seal("Mediterranean monk seal", "Monachus monachus", "Mediterranean and Aegean caves", "only a few hundred are left"),
+]
+
+$BLUE = "#8ecae6"
+$PINK = "#ff8fab"
+$GREEN = "#95d5b2"
+$FIELD = "#2b2f36"
+
+$SEARCH = TextInput.new("type to search")
+$LIST = ListView.new([])
+LIST.hi = BLUE
+$WHERE = TextInput.new("Kelp Bay")
+WHERE.bg = FIELD
+$NOTE = TextInput.new("what were they doing?")
+NOTE.bg = FIELD
+$FOCUS = Focus.new([SEARCH, LIST, WHERE, NOTE])
+LIST.found = []
+
+define $boxed(title, child, fg)
+    b = Box.new(title, child)
+    b.fg = "bright_black"
+    b.hi = fg
+    return b
+
+define $text(fg)
+    l = Label.new("")
+    l.fg = fg
+    return l
+
+define $field(name, input)
+    return Row.new([[Label.new(name), 7], [input, "fill"], [null, 2]])
+
+$TITLE = Label.new(" 🦭 seal finder")
+$COUNT = text("bright_black")
+COUNT.align = "right"
+$LATIN = text(PINK)
+$HOME = text("default")
+$FACT = text("#adb5bd")
+$SEEN = text(GREEN)
+$HINT = text("bright_black")
+HINT.align = "center"
+
+$SEALBOX = Box.new("", Col.new([[LATIN, 1], [null, 1], [HOME, 1], [FACT, 1], [null, 1], [SEEN, "fill"]]))
+SEALBOX.pad = 2
+$FORM = Box.new("log a sighting", Col.new([[null, 1], [field("where", WHERE), 1], [null, 1], [field("note", NOTE), 1]]))
+FORM.pad = 2
+
+$LEFT = Col.new([[boxed("search", SEARCH, PINK), 3], [boxed("seals", LIST, BLUE), "fill"]])
+$RIGHT = Col.new([[SEALBOX, "fill"], [FORM, 7]])
+$ROOT = Col.new([
+    [Row.new([[TITLE, "fill"], [COUNT, 20]]), 1],
+    [Row.new([[LEFT, 30], [RIGHT, "fill"]]), "fill"],
+    [HINT, 1],
+])
+LEFT.parts[1][0].pad = 0
+
+define $filter()
+    q = SEARCH.text->lower()
+    LIST.found = []
+    LIST.items = []
+    for s in SEALS
+        if s.name->lower()->index(q) >= 0 or s.latin->lower()->index(q) >= 0
+            LIST.found->push(s)
+            LIST.items->push(s.name)
+    if LIST.selected >= LIST.found->len() then LIST.selected = LIST.found->len() - 1
+    if LIST.selected < 0 then LIST.selected = 0
+
+define $save()
+    if LIST.found->len() == 0 or WHERE.text == "" then return null
+    s = LIST.found[LIST.selected]
+    line = "✓ " + WHERE.text
+    if NOTE.text != "" then line += ", " + NOTE.text
+    s.seen->push(line)
+    WHERE->set("")
+    NOTE->set("")
+    FOCUS->set(1)
+
+define $scene()
+    COUNT.text = string(LIST.found->len()) + " of " + string(SEALS->len()) + " "
+    SEALBOX.fg = "bright_black"
+    if LIST.found->len() == 0
+        SEALBOX.title = "no seal matches"
+        LATIN.text = ""
+        HOME.text = ""
+        FACT.text = ""
+        SEEN.text = ""
+    else
+        s = LIST.found[LIST.selected]
+        SEALBOX.title = s.name
+        SEALBOX.fg = BLUE
+        LATIN.text = s.latin
+        HOME.text = "lives  " + s.home
+        FACT.text = s.note
+        SEEN.text = ""
+        for line in s.seen
+            SEEN.text += line + "\n"
+        if s.seen->len() == 0 then SEEN.text = "not seen yet"
+    FORM.fg = "bright_black"
+    if WHERE.focused or NOTE.focused then FORM.fg = GREEN
+    HINT.text = "tab next field · enter save · esc quit"
+    if SEARCH.focused then HINT.text = "type to filter · enter pick · esc quit"
+    Tui.clear()
+    ROOT->draw(0, 0, Tui.w, Tui.h)
+
+filter()
+Tui.init()
+key = ""
+while key != "esc" and key != "ctrl+c"
+    scene()
+    key = Tui.readkey()
+    if key == "enter"
+        at = FOCUS.at
+        if at == 0 then FOCUS->set(1)
+        if at == 1 then FOCUS->set(2)
+        if at == 2 then FOCUS->set(3)
+        if at == 3 then save()
+    else if FOCUS->key(key) and SEARCH.focused
+        filter()
+Tui.quit()
