@@ -1,0 +1,189 @@
+include "../tui"
+include "math"
+
+$COLORS = ["#ff8fab", "#ffb703", "#ffe66d", "#95d5b2", "#8ecae6", "#4d96ff", "#b388eb", "#f8f9fa"]
+
+$Palette = {}
+
+Palette.draw = define(self, x, y, w, h)
+    self.area = [x, y, w, h]
+    for i in COLORS->len()
+        Tui.reset()
+        Tui.bg(COLORS[i])
+        Tui.fg("black")
+        Tui.move(x + i % 4 * 4, y + i / 4 * 2)
+        mark = "   "
+        if i == self.at then mark = " ◆ "
+        Tui.write(mark)
+    Tui.reset()
+
+Palette.key = define(self, key)
+    at = self.at
+    if key == "click"
+        cx = (Key.mouse.x - self.area[0]) / 4
+        cy = (Key.mouse.y - self.area[1]) / 2
+        if (Key.mouse.x - self.area[0]) % 4 == 3 or cx > 3 or cy > 1 then return false
+        at = cy * 4 + cx
+    if key == "right" or key == "wheeldown" then at += 1
+    if key == "left" or key == "wheelup" then at -= 1
+    at = (at + 8) % 8
+    moved = at != self.at
+    self.at = at
+    return moved
+
+$PALETTE = { at = 4, area = [0, 0, 0, 0], focused = false, draw = Palette.draw, key = Palette.key }
+
+$Canvas = {}
+
+Canvas.draw = define(self, x, y, w, h)
+    self.area = [x, y, w, h]
+    if self.w != w or self.h != h then self->wipe(w, h)
+    for cy in h
+        half = false
+        for cx in w
+            i = cy * w + cx
+            Tui.reset()
+            if self.ink[i] != null then Tui.bg(self.ink[i])
+            Tui.move(x + cx, y + cy)
+            if half
+                half = false
+            else if self.seals[i]
+                Tui.write("🦭")
+                half = true
+            else
+                Tui.write(" ")
+    Tui.reset()
+
+Canvas.wipe = define(self, w, h)
+    self.w = w
+    self.h = h
+    self.ink = []
+    self.seals = []
+    for i in w * h
+        self.ink->push(null)
+        self.seals->push(false)
+
+Canvas.dab = define(self, x, y)
+    if x < 0 or y < 0 or x >= self.w or y >= self.h then return null
+    i = y * self.w + x
+    if self.erase
+        self.ink[i] = null
+        self.seals[i] = false
+    else
+        self.ink[i] = COLORS[PALETTE.at]
+
+Canvas.brush = define(self, x, y)
+    b = BRUSHES.selected
+    if b == 0 then return self->dab(x, y)
+    if b == 3
+        if self.erase then return self->dab(x, y)
+        if x < self.w - 1 and y < self.h then self.seals[y * self.w + x] = true
+        return null
+    r = 1
+    if b == 2 then r = 3
+    for dy in r * 2 + 1
+        for dx in r * 4 + 1
+            ox = dx - r * 2
+            oy = dy - r
+            if ox * ox + oy * oy * 4 <= r * r * 4
+                if b == 1 or Math.random(0, 25) == 0 then self->dab(x + ox, y + oy)
+
+Canvas.line = define(self, x, y)
+    dx = x - self.x
+    dy = y - self.y
+    n = Math.abs(dx)
+    if Math.abs(dy) > n then n = Math.abs(dy)
+    if BRUSHES.selected == 3 then n = 0
+    for i in n + 1
+        if n == 0
+            self->brush(x, y)
+        else
+            self->brush(self.x + dx * i / n, self.y + dy * i / n)
+    self.x = x
+    self.y = y
+
+Canvas.key = define(self, key)
+    x = Key.mouse.x - self.area[0]
+    y = Key.mouse.y - self.area[1]
+    if key == "click" or key == "rightclick"
+        self.erase = key == "rightclick"
+        self.x = x
+        self.y = y
+        self->line(x, y)
+        return true
+    if key == "drag" and BRUSHES.selected != 3
+        self->line(x, y)
+        return true
+    return PALETTE->key(key)
+
+$CANVAS = {
+    w = 0, h = 0, x = 0, y = 0, erase = false, area = [0, 0, 0, 0], focused = false,
+    draw = Canvas.draw, wipe = Canvas.wipe, dab = Canvas.dab, brush = Canvas.brush,
+    line = Canvas.line, key = Canvas.key,
+}
+
+$BRUSHES = ListView.new(["· dot", "● round", "▒ spray", "🦭 stamp"])
+BRUSHES.selected = 1
+$CLEAR = Button.new("clear", define() CANVAS->wipe(0, 0))
+$QUIT = Button.new("quit", define() Tui.quit())
+$FOCUS = Focus.new([PALETTE, BRUSHES, CANVAS, CLEAR, QUIT])
+FOCUS->set(2)
+
+define $boxed(title, child, hi)
+    b = Box.new(title, child)
+    b.fg = "bright_black"
+    b.hi = hi
+    return b
+
+$TITLE = Label.new(" 🦭 suitui canvas")
+$WHERE = Label.new("")
+WHERE.align = "right"
+WHERE.fg = "bright_black"
+$HINT = Label.new("left paint · right erase · wheel color · esc quit")
+HINT.align = "center"
+HINT.fg = "bright_black"
+$INK = boxed("canvas", CANVAS, "#ff8fab")
+INK.pad = 0
+
+$SIDE = Col.new([
+    [boxed("color", PALETTE, "#ffe66d"), 5],
+    [boxed("brush", BRUSHES, "#8ecae6"), 6],
+    [null, "fill"],
+    [Row.new([[null, 1], [CLEAR, 8], [QUIT, 6]]), 1],
+    [null, 1],
+])
+$ROOT = Col.new([
+    [Row.new([[TITLE, "fill"], [WHERE, 16]]), 1],
+    [Row.new([[SIDE, 20], [INK, "fill"]]), "fill"],
+    [HINT, 1],
+])
+
+define $pointer()
+    m = Key.mouse
+    if not Tui.hit(CANVAS) then return null
+    Tui.move(m.x, m.y)
+    i = (m.y - CANVAS.area[1]) * CANVAS.w + m.x - CANVAS.area[0]
+    if CANVAS.ink[i] != null then Tui.bg(CANVAS.ink[i])
+    Tui.fg("white")
+    Tui.attr("bold")
+    if BRUSHES.selected == 3 then Tui.write("🦭")
+    if BRUSHES.selected != 3 then Tui.write("+")
+    Tui.reset()
+
+define $scene()
+    INK.hi = COLORS[PALETTE.at]
+    WHERE.text = ""
+    if Tui.hit(CANVAS)
+        WHERE.text = string(Key.mouse.x - CANVAS.area[0]) + ", " + string(Key.mouse.y - CANVAS.area[1]) + " "
+    Tui.clear()
+    ROOT->draw(0, 0, Tui.w, Tui.h)
+    pointer()
+
+Tui.init()
+Tui.track("move")
+key = ""
+while key != "esc" and key != "ctrl+c" and Tui.ready
+    scene()
+    key = Tui.readkey()
+    FOCUS->key(key)
+Tui.quit()
