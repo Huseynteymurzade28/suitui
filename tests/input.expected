@@ -1,0 +1,11 @@
+.search.|| 0
+sel.a...|sel a| 5
+sela.a..|sela a| 4
+ela.....|ela | 4
+.search.|| 0
+本.xyz..|ç日本 xyz| 7
+本.xyz..|ç日本 xyz| 3
+ç日本.xy|ç日本 xyz| 0
+.xyz....| xyz| 0
+false false false false
+o.world.|hello world| 11

@@ -1,0 +1,32 @@
+include "../tui"
+
+define $line(t)
+    out = ""
+    for x in Tui.w
+        ch = Tui.chars[x]
+        if ch == " " then ch = "."
+        out += ch
+    print(out + "|" + t.text + "| " + string(t.at))
+    Tui.clear()
+
+define $type(t, keys)
+    for k in keys
+        t->key(k)
+    t->draw(0, 0, Tui.w, 1)
+    line(t)
+
+Tui.resize(8, 1)
+
+t = TextInput.new("search")
+type(t, [])
+type(t, ["s", "e", "l", "space", "a"])
+type(t, ["left", "left", "a"])
+type(t, ["home", "delete", "end", "backspace"])
+type(t, ["ctrl+w"])
+type(t, ["ç", "日", "本", "space", "x", "y", "z"])
+type(t, ["ctrl+left", "ctrl+left", "ctrl+right"])
+type(t, ["home"])
+type(t, ["ctrl+right", "ctrl+u"])
+print(t->key("tab"), t->key("esc"), t->key("ctrl+x"), t->key("left"))
+t->set("hello world")
+type(t, [])
