@@ -42,6 +42,7 @@ make run EX=09
 | `13` | rows and columns that follow the window |
 | `14` | a seal station, charts and a log laid out with rows and columns |
 | `15` | three lists, tab moves between them |
+| `16` | seal finder: search as you type, log a sighting with a small form |
 
 </details>
 
@@ -84,6 +85,7 @@ list->key(Tui.readkey())
 | `Label` | text, aligned left, center or right |
 | `Box` | a border and a title around another widget |
 | `ListView` | a scrolling list with a selected item |
+| `TextInput` | one line of text with a cursor, scrolls when it gets long |
 
 <p align="center">
   <img src="docs/list.gif" alt="list example" width="560">
@@ -123,6 +125,20 @@ focus->key(Tui.readkey())
 
 <p align="center">
   <img src="docs/focus.gif" alt="focus example" width="560">
+</p>
+
+## Text input
+
+```
+search = TextInput.new("type to search")
+if search->key(Tui.readkey()) then print(search.text)
+```
+
+Left and right, home and end, Ctrl+Left and Ctrl+Right jump over words, Ctrl+W deletes one,
+Ctrl+U clears everything before the cursor. `key` returns true when the text or the cursor moved.
+
+<p align="center">
+  <img src="docs/finder.gif" alt="seal finder example" width="560">
 </p>
 
 ## How it's built
