@@ -41,6 +41,7 @@ make run EX=09
 | `12` | a scrolling list of seals |
 | `13` | rows and columns that follow the window |
 | `14` | a seal station, charts and a log laid out with rows and columns |
+| `15` | three lists, tab moves between them |
 
 </details>
 
@@ -108,6 +109,20 @@ Rows and columns are widgets too, so they nest. `null` in place of a widget leav
 
 <p align="center">
   <img src="docs/layout.gif" alt="layout example" width="560">
+</p>
+
+## Focus
+
+`Focus` holds the widgets that take keys. Tab and Shift+Tab move between them, every other key goes
+to the focused one. A `Box` with `hi` set lights up in that color while its child has focus.
+
+```
+focus = Focus.new([seals, snacks, beaches])
+focus->key(Tui.readkey())
+```
+
+<p align="center">
+  <img src="docs/focus.gif" alt="focus example" width="560">
 </p>
 
 ## How it's built
