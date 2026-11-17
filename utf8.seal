@@ -59,3 +59,9 @@ Utf8.fit = define(s, w)
         if w < 0 then return out
         out += ch
     return out
+
+Utf8.slice = define(chars, from, to)
+    out = ""
+    for i in to - from
+        out += chars[from + i]
+    return out
