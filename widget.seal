@@ -136,7 +136,28 @@ Focus.set = define(self, at)
         self.items[i].focused = i == self.at
     return true
 
+Focus.under = define(self)
+    for i in self.items->len()
+        if Tui.hit(self.items[i]) then return i
+    return -1
+
+Focus.mouse = define(self, key)
+    at = self->under()
+    w = self.items[self.at]
+    moved = false
+    if key->index("wheel") >= 0
+        if at < 0 then return false
+        w = self.items[at]
+    else if key->index("click") >= 0
+        if at < 0 then return false
+        moved = at != self.at
+        self->set(at)
+        w = self.items[at]
+    if not Map.has(w, "key") then return moved
+    return w->key(key) or moved
+
 Focus.key = define(self, key)
+    if Key.ismouse(key) then return self->mouse(key)
     if key == "tab" then return self->set(self.at + 1)
     if key == "shift+tab" then return self->set(self.at - 1)
     w = self.items[self.at]
@@ -147,7 +168,10 @@ Focus.current = define(self)
     return self.items[self.at]
 
 Focus.new = define(items)
-    f = { items = items, at = 0, set = Focus.set, key = Focus.key, current = Focus.current }
+    f = {
+        items = items, at = 0,
+        set = Focus.set, key = Focus.key, current = Focus.current, mouse = Focus.mouse, under = Focus.under,
+    }
     f->set(0)
     return f
 
