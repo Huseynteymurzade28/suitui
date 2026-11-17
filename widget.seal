@@ -40,6 +40,7 @@ $ListView = {}
 
 ListView.draw = define(self, x, y, w, h)
     if w < 2 or h < 1 then return null
+    self.area = [x, y, w, h]
     n = self.items->len()
     self.page = h
     if self.top > n - h then self.top = n - h
@@ -72,7 +73,39 @@ ListView.draw = define(self, x, y, w, h)
         Tui.write(" " + line + Tui.repeat(" ", w - 1 - Utf8.width(line)))
     Tui.reset()
 
+ListView.wheel = define(self, step)
+    top = self.top + step
+    if top > self.items->len() - self.page then top = self.items->len() - self.page
+    if top < 0 then top = 0
+    at = self.selected
+    if at < top then at = top
+    if at >= top + self.page then at = top + self.page - 1
+    moved = top != self.top or at != self.selected
+    self.top = top
+    self.selected = at
+    return moved
+
+ListView.mouse = define(self, key)
+    if key == "wheelup" then return self->wheel(-3)
+    if key == "wheeldown" then return self->wheel(3)
+    if key == "release" then self.grab = false
+    n = self.items->len()
+    a = self.area
+    if n == 0 or (key != "click" and key != "drag") then return false
+    row = Key.mouse.y - a[1]
+    if row < 0 then row = 0
+    if row >= a[3] then row = a[3] - 1
+    if key == "click" then self.grab = n > a[3] and a[3] > 1 and Key.mouse.x == a[0] + a[2] - 1
+    at = self.top + row
+    if self.grab then at = row * (n - 1) / (a[3] - 1)
+    if at >= n and key == "click" then return false
+    if at >= n then at = n - 1
+    moved = at != self.selected
+    self.selected = at
+    return moved
+
 ListView.key = define(self, key)
+    if Key.ismouse(key) then return self->mouse(key)
     last = self.items->len() - 1
     at = self.selected
     if key == "up" or key == "k" then at -= 1
@@ -89,8 +122,9 @@ ListView.key = define(self, key)
 
 ListView.new = define(items)
     return {
-        items = items, selected = 0, top = 0, page = 1,
-        fg = "default", hi = "cyan", focused = true, draw = ListView.draw, key = ListView.key,
+        items = items, selected = 0, top = 0, page = 1, area = [0, 0, 0, 0], grab = false,
+        fg = "default", hi = "cyan", focused = true,
+        draw = ListView.draw, key = ListView.key, mouse = ListView.mouse, wheel = ListView.wheel,
     }
 
 $Focus = {}
