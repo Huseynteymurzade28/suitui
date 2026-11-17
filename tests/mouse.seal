@@ -1,0 +1,51 @@
+include "../tui"
+
+define $at(x, y)
+    Tui.clear()
+    ROOT->draw(0, 0, 20, 4)
+    Key.mouse.x = x
+    Key.mouse.y = y
+
+Tui.resize(20, 4)
+
+list = ListView.new(["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])
+input = TextInput.new("")
+input->set("seal 日本")
+$pressed = []
+button = Button.new("ok", define() pressed->push("ok"))
+f = Focus.new([list, input, button])
+$ROOT = Row.new([[list, 8], [input, 8], [button, 4]])
+
+at(1, 2)
+print(f->key("click"), list.selected)
+at(7, 3)
+f->key("click")
+print(list.selected, list.grab)
+f->key("drag")
+print(list.selected, list.grab)
+f->key("release")
+print(list.grab)
+at(1, 0)
+print(f->key("wheelup"), list.selected, list.top)
+print(f->key("wheelup"), list.selected, list.top)
+
+at(10, 0)
+print(f->key("click"), f.at, input.at)
+at(14, 0)
+f->key("click")
+print(input.at)
+at(15, 0)
+f->key("click")
+print(input.at)
+
+at(17, 0)
+print(f->key("wheeldown"), f.at, list.top)
+print(f->key("click"), f.at, button.down, pressed->len())
+print(f->key("release"), button.down, pressed->len())
+f->key("click")
+at(5, 3)
+f->key("release")
+print(pressed->len())
+f->key("enter")
+print(pressed->len())
+print(f->key("move"), f->key("rightclick"))
