@@ -1,0 +1,48 @@
+include "../tui"
+
+define $pick(title, items, fg)
+    list = ListView.new(items)
+    list.hi = fg
+    box = Box.new(title, list)
+    box.pad = 0
+    box.fg = "bright_black"
+    box.hi = fg
+    return { list = list, box = box }
+
+$WHO = pick("seal", ["Cotton", "Button", "Olive", "Peanut", "Caramel", "Smoke"], "#8ecae6")
+$SNACK = pick("snack", ["herring", "sand eel", "cod", "squid", "krill", "octopus", "mackerel"], "#ff8fab")
+$BEACH = pick("beach", ["Skerry Rock", "Ice Shelf", "Foggy Cove", "Kelp Bay", "Pebble Point"], "#95d5b2")
+$FOCUS = Focus.new([WHO.list, SNACK.list, BEACH.list])
+
+$PLAN = Label.new("")
+PLAN.align = "center"
+$HINT = Label.new("tab shift+tab switch, up down pick, q to quit")
+HINT.align = "center"
+HINT.fg = "bright_black"
+
+$ROOT = Col.new([
+    [null, 1],
+    [Row.new([[WHO.box, "fill"], [SNACK.box, "fill"], [BEACH.box, "fill"]]), "fill"],
+    [null, 1],
+    [PLAN, 1],
+    [null, 1],
+    [HINT, 1],
+])
+ROOT.parts[1][0].gap = 1
+
+define $name(p)
+    return p.list.items[p.list.selected]
+
+define $scene()
+    PLAN.text = "🦭 " + name(WHO) + " eats " + name(SNACK) + " at " + name(BEACH)
+    PLAN.fg = FOCUS->current().hi
+    Tui.clear()
+    ROOT->draw(1, 0, Tui.w - 2, Tui.h)
+
+Tui.init()
+key = ""
+while key != "q" and key != "ctrl+c"
+    scene()
+    key = Tui.readkey()
+    FOCUS->key(key)
+Tui.quit()
