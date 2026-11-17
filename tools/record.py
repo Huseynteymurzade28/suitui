@@ -2,7 +2,7 @@
 """tools/record.py out.cast [-s 60x18] KEYS... -- CMD...
 
 KEYS are escaped strings like '\\x1b[A', @N to wait N ms,
-or =COLSxROWS to resize the terminal.
+~N to wait N ms after each key from now on, or =COLSxROWS to resize the terminal.
 """
 
 import codecs, fcntl, json, os, pty, select, struct, sys, termios, time
@@ -48,7 +48,11 @@ def main():
                            utf8.decode(data)])
 
     pump(800)
+    step = 400
     for k in opts:
+        if k.startswith("~") and k[1:].isdigit():
+            step = int(k[1:])
+            continue
         if k.startswith("@"):
             pump(int(k[1:]))
             continue
@@ -61,7 +65,7 @@ def main():
             os.write(fd, k.encode("latin1"))
         else:
             os.write(fd, k.encode())
-        pump(400)
+        pump(step)
     pump(300)
 
     with open(out, "w") as f:
