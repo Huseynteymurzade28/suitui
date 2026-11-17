@@ -18,6 +18,7 @@ Tui.x = 0
 Tui.y = 0
 Tui.last = -1
 Tui.width = Utf8.width
+Tui.mouse = Key.mouse
 
 Tui.resize = define(w, h)
     Tui.w = w
@@ -35,7 +36,7 @@ Tui.resize = define(w, h)
 
 Tui.init = define()
     csi = Tui.CSI
-    TermIO.raw(csi + "0m" + csi + "?25h" + csi + "?1049l")
+    TermIO.raw(csi + "0m" + csi + "?1003l" + csi + "?1002l" + csi + "?1006l" + csi + "?25h" + csi + "?1049l")
     TermIO.write(csi + "?1049h" + csi + "?25l" + csi + "2J")
     TermIO.flush()
     s = TermIO.size()
@@ -45,6 +46,21 @@ Tui.init = define()
 Tui.quit = define()
     Tui.ready = false
     TermIO.restore()
+
+Tui.TRACK = { off = [], click = ["1002", "1006"], move = ["1002", "1003", "1006"] }
+
+Tui.track = define(mode)
+    for m in ["1003", "1002", "1006"]
+        TermIO.write(Tui.CSI + "?" + m + "l")
+    for m in Tui.TRACK[mode]
+        TermIO.write(Tui.CSI + "?" + m + "h")
+    TermIO.flush()
+
+Tui.hit = define(w)
+    if w == null or not Map.has(w, "area") then return false
+    a = w.area
+    m = Key.mouse
+    return m.x >= a[0] and m.y >= a[1] and m.x < a[0] + a[2] and m.y < a[1] + a[3]
 
 Tui.clear = define()
     for i in Tui.w * Tui.h
