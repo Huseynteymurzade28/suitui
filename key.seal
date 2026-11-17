@@ -1,4 +1,4 @@
-$Key = { timeout = 25 }
+$Key = { timeout = 25, mouse = { x = 0, y = 0 } }
 
 Key.TILDE = [
     null, "home", "insert", "delete", "end", "pgup", "pgdown", "home", "end",
@@ -63,10 +63,55 @@ Key.mods = define(mod, name)
     if (mod & 1) != 0 then out += "shift+"
     return out + name
 
+Key.MOUSE = {
+    click = true, middleclick = true, rightclick = true, release = true,
+    drag = true, move = true, wheelup = true, wheeldown = true,
+}
+
+Key.BUTTONS = ["click", "middleclick", "rightclick", "release"]
+
+Key.ismouse = define(key)
+    if key == null then return false
+    parts = key->split("+")
+    if parts->len() == 0 then return false
+    return Map.has(Key.MOUSE, parts[parts->len() - 1])
+
+Key.sgr = define()
+    p = [0, 0, 0]
+    i = 0
+    c = TermIO.read(Key.timeout)
+    while c != -1
+        if c >= 48 and c <= 57
+            p[i] = p[i] * 10 + c - 48
+        else if c == 59 and i < 2
+            i += 1
+        else
+            stop
+        c = TermIO.read(Key.timeout)
+    if c != 77 and c != 109 then return "unknown"
+    Key.mouse.x = p[1] - 1
+    Key.mouse.y = p[2] - 1
+    b = p[0]
+    mod = 0
+    if (b & 4) != 0 then mod += 1
+    if (b & 8) != 0 then mod += 2
+    if (b & 16) != 0 then mod += 4
+    name = Key.BUTTONS[b & 3]
+    if (b & 64) != 0
+        name = "wheelup"
+        if (b & 1) != 0 then name = "wheeldown"
+    else if (b & 32) != 0
+        name = "drag"
+        if (b & 3) == 3 then name = "move"
+    else if c == 109
+        name = "release"
+    return Key.mods(mod, name)
+
 Key.csi = define()
     p = [0, 0]
     i = 0
     c = TermIO.read(Key.timeout)
+    if c == 60 then return Key.sgr()
     while c != -1
         if c >= 48 and c <= 57
             p[i] = p[i] * 10 + c - 48
