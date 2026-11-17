@@ -1,0 +1,38 @@
+include "../tui"
+
+define $dump()
+    for y in Tui.h
+        out = ""
+        for x in Tui.w
+            ch = Tui.chars[y * Tui.w + x]
+            if ch == " " then ch = "."
+            out += ch
+        print(out)
+    print("")
+    Tui.clear()
+
+Tui.resize(16, 4)
+
+a = ListView.new(["one", "two"])
+b = ListView.new(["six", "seven"])
+note = Label.new("hi")
+f = Focus.new([a, note, b])
+print(a.focused, note.focused, b.focused)
+
+f->key("down")
+print(a.selected, b.selected)
+print(f->key("tab"), a.focused, note.focused)
+print(f->key("down"))
+f->key("tab")
+f->key("down")
+print(a.selected, b.selected, f->current() == b)
+f->key("tab")
+print(f.at, a.focused)
+f->key("shift+tab")
+f->key("shift+tab")
+print(f.at, note.focused)
+
+box = Box.new("a", a)
+box.hi = "cyan"
+Row.new([[box, 8], [Box.new("b", b), 8]])->draw(0, 0, 16, 4)
+dump()

@@ -25,6 +25,7 @@ test: all
 	$(SEAL) tests/wide.seal | diff -u tests/wide.expected -
 	$(SEAL) tests/widget.seal | diff -u tests/widget.expected -
 	$(SEAL) tests/layout.seal | diff -u tests/layout.expected -
+	$(SEAL) tests/focus.seal | diff -u tests/focus.expected -
 	@echo ok
 
 clean:
