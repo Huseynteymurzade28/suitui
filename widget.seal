@@ -179,6 +179,7 @@ $TextInput = {}
 
 TextInput.draw = define(self, x, y, w, h)
     if w < 1 or h < 1 then return null
+    self.area = [x, y, w, h]
     chars = Utf8.split(self.text)
     if self.at < self.left then self.left = self.at
     while Utf8.width(Utf8.slice(chars, self.left, self.at)) >= w
@@ -227,7 +228,14 @@ TextInput.key = define(self, key)
     n = chars->len()
     at = self.at
     text = self.text
-    if key == "left"
+    if Key.ismouse(key)
+        if key != "click" and key != "drag" then return false
+        col = Key.mouse.x - self.area[0]
+        at = self.left
+        while at < n and Utf8.cell(chars[at]) <= col
+            col -= Utf8.cell(chars[at])
+            at += 1
+    else if key == "left"
         at -= 1
     else if key == "right"
         at += 1
@@ -270,6 +278,6 @@ TextInput.set = define(self, text)
 
 TextInput.new = define(hint)
     return {
-        text = "", at = 0, left = 0, hint = hint, fg = "default", bg = null, focused = true,
+        text = "", at = 0, left = 0, area = [0, 0, 0, 0], hint = hint, fg = "default", bg = null, focused = true,
         draw = TextInput.draw, key = TextInput.key, set = TextInput.set,
     }
