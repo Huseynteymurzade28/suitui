@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/snake.gif" alt="snake example" width="560">
+  <img src="docs/sunset.gif" alt="sunset example" width="560">
 </p>
 
 ## Try it
@@ -45,6 +45,7 @@ make run EX=09
 | `16` | seal finder: search as you type, log a sighting with a small form |
 | `17` | paint with the mouse: brushes, a palette, seal stamps |
 | `18` | seal todo: add, check off, edit and reorder tasks, kept in `~/.seal_todo` |
+| `19` | a seal watching the sunset, every cell is two pixels |
 
 </details>
 
@@ -166,6 +167,22 @@ focus = Focus.new([list, input, save])
 
 <p align="center">
   <img src="docs/canvas.gif" alt="canvas example" width="560">
+</p>
+
+## Pixels
+
+`Pixels` is a grid of colors, two per cell: the top one is drawn with `▀`, the bottom one is its background.
+An 80x24 terminal becomes an 80x48 picture. Colors are `"#rrggbb"`, `[r, g, b]` or 0-255, `null` is see-through.
+
+```
+p = Pixels.new(Tui.w, Tui.h * 2)
+p->set(10, 7, "#ffd66b")
+p->fill(null)
+p->draw(0, 0, Tui.w, Tui.h)
+```
+
+<p align="center">
+  <img src="docs/snake.gif" alt="snake example" width="560">
 </p>
 
 ## A real app
