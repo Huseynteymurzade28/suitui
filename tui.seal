@@ -169,6 +169,15 @@ Tui.repeat = define(s, n)
         n -= 1
     return out
 
+Tui.lines = define(s)
+    out = [""]
+    for b in s
+        if b == "\n"
+            out->push("")
+        else
+            out[out->len() - 1] += b
+    return out
+
 Tui.BORDERS = {
     single = ["─", "│", "┌", "┐", "└", "┘"],
     rounded = ["─", "│", "╭", "╮", "╰", "╯"],
