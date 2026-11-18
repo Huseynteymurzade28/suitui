@@ -1,0 +1,17 @@
+include "../tui"
+
+Tui.resize(4, 2)
+p = Pixels.new(3, 4)
+p->set(0, 0, "#ff0000")
+p->set(0, 1, [0, 0, 255])
+p->set(1, 1, 42)
+p->set(2, 0, [1, 2, 3])
+p->set(2, 2, [9, 9, 9])
+p->set(5, 5, [9, 9, 9])
+p->draw(0, 0, 10, 10)
+for i in 8
+    print("'" + Tui.chars[i] + "'", Tui.styles[i])
+print(p.area)
+p->fill(null)
+p->draw(0, 0, 4, 2)
+print(Tui.chars)

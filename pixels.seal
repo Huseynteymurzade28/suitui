@@ -1,0 +1,52 @@
+$Pixels = {}
+
+Pixels.rgb = define(c)
+    if typeof(c) == "integer" then return "5;" + string(c)
+    if typeof(c) == "string" then c = Color.hex(c)
+    return "2;" + string(c[0]) + ";" + string(c[1]) + ";" + string(c[2])
+
+Pixels.set = define(self, x, y, c)
+    if x < 0 or y < 0 or x >= self.w or y >= self.h then return null
+    if c == null
+        self.px[y * self.w + x] = ""
+    else
+        self.px[y * self.w + x] = Pixels.rgb(c)
+
+Pixels.fill = define(self, c)
+    v = ""
+    if c != null then v = Pixels.rgb(c)
+    for i in self.w * self.h
+        self.px[i] = v
+
+Pixels.draw = define(self, x, y, w, h)
+    if w > self.w then w = self.w
+    if h > self.h / 2 then h = self.h / 2
+    self.area = [x, y, w, h]
+    px = self.px
+    pw = self.w
+    for row in h
+        top = 2 * row * pw
+        Tui.move(x, y + row)
+        for col in w
+            a = px[top + col]
+            b = px[top + pw + col]
+            ch = "▀"
+            if a == "" and b == ""
+                ch = " "
+                Tui.style = "0"
+            else if a == ""
+                ch = "▄"
+                Tui.style = "0;38;" + b
+            else if b == ""
+                Tui.style = "0;38;" + a
+            else
+                Tui.style = "0;38;" + a + ";48;" + b
+            Tui.put(ch)
+    Tui.reset()
+    Tui.dirty = true
+
+Pixels.new = define(w, h)
+    p = { w = w, h = h, px = [], area = [0, 0, 0, 0], set = Pixels.set, fill = Pixels.fill, draw = Pixels.draw }
+    for i in w * h
+        p.px->push("")
+    return p
