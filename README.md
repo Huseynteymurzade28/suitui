@@ -44,6 +44,7 @@ make run EX=09
 | `15` | three lists, tab moves between them |
 | `16` | seal finder: search as you type, log a sighting with a small form |
 | `17` | paint with the mouse: brushes, a palette, seal stamps |
+| `18` | seal todo: add, check off, edit and reorder tasks, kept in `~/.seal_todo` |
 
 </details>
 
@@ -165,6 +166,21 @@ focus = Focus.new([list, input, save])
 
 <p align="center">
   <img src="docs/canvas.gif" alt="canvas example" width="560">
+</p>
+
+## A real app
+
+`examples/18_todo.seal` puts it all together in about 200 lines: a text input, a list, a focus ring,
+mouse clicks on the checkboxes and a progress bar, saved to `~/.seal_todo` (or `$TODO_FILE`) after every change.
+`list.paint` styles a single row, here it greys out and strikes through what's done:
+
+```
+list.paint = define(self, at)
+    if TASKS[at].done then Tui.attr("strike")
+```
+
+<p align="center">
+  <img src="docs/todo.gif" alt="todo example" width="560">
 </p>
 
 ## How it's built
