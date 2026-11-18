@@ -72,6 +72,10 @@ print("you pressed", key)
 - **Wide characters** (CJK, emoji) take two cells, `Tui.width(s)` tells how many columns a string needs.
 - **Only changed cells** are sent to the terminal on each frame.
 
+<p align="center">
+  <img src="docs/snake.gif" alt="snake example" width="560">
+</p>
+
 ## Widgets
 
 A widget is a map with a `draw(x, y, w, h)` function, it paints itself into the rectangle it is given.
@@ -180,10 +184,6 @@ p->set(10, 7, "#ffd66b")
 p->fill(null)
 p->draw(0, 0, Tui.w, Tui.h)
 ```
-
-<p align="center">
-  <img src="docs/snake.gif" alt="snake example" width="560">
-</p>
 
 ## A real app
 
