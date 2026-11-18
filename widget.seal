@@ -1,7 +1,7 @@
 $Label = {}
 
 Label.draw = define(self, x, y, w, h)
-    lines = self.text->split("\n")
+    lines = Tui.lines(self.text)
     Tui.fg(self.fg)
     for i in lines->len()
         if i >= h then stop
