@@ -62,16 +62,23 @@ ListView.draw = define(self, x, y, w, h)
     for i in h
         at = self.top + i
         if at >= n then stop
-        Tui.reset()
-        Tui.fg(self.fg)
-        if at == self.selected
-            Tui.fg("black")
-            Tui.bg(self.hi)
-            if not self.focused then Tui.bg("bright_black")
         line = Utf8.fit(self.items[at], w - 2)
         Tui.move(x, y + i)
-        Tui.write(" " + line + Tui.repeat(" ", w - 1 - Utf8.width(line)))
+        self->base(at)
+        Tui.write(" ")
+        if self.paint != null then self->paint(at)
+        Tui.write(line)
+        self->base(at)
+        Tui.write(Tui.repeat(" ", w - 1 - Utf8.width(line)))
     Tui.reset()
+
+ListView.base = define(self, at)
+    Tui.reset()
+    Tui.fg(self.fg)
+    if at == self.selected
+        Tui.fg("black")
+        Tui.bg(self.hi)
+        if not self.focused then Tui.bg("bright_black")
 
 ListView.wheel = define(self, step)
     top = self.top + step
@@ -123,8 +130,8 @@ ListView.key = define(self, key)
 ListView.new = define(items)
     return {
         items = items, selected = 0, top = 0, page = 1, area = [0, 0, 0, 0], grab = false,
-        fg = "default", hi = "cyan", focused = true,
-        draw = ListView.draw, key = ListView.key, mouse = ListView.mouse, wheel = ListView.wheel,
+        fg = "default", hi = "cyan", focused = true, paint = null,
+        draw = ListView.draw, base = ListView.base, key = ListView.key, mouse = ListView.mouse, wheel = ListView.wheel,
     }
 
 $Focus = {}
