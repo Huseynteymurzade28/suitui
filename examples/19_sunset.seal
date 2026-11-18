@@ -1,0 +1,155 @@
+include "../tui"
+include "math"
+
+$TAILUP = [
+    "..........................####....",
+    "........................########..",
+    ".......................##########.",
+    ".......................###########",
+    "......................########....",
+    ".....................########.....",
+    "#..................##########.....",
+    "##...........################.....",
+    ".##......####################.....",
+    "..###########################.....",
+    "...########################%#.....",
+    "....######################..%##...",
+    "......##################..........",
+]
+
+$TAILDOWN = [
+    "..........................####....",
+    "........................########..",
+    ".......................##########.",
+    ".......................###########",
+    "......................########....",
+    ".....................########.....",
+    "...................##########.....",
+    ".............################.....",
+    "##.......####################.....",
+    ".############################.....",
+    "...########################%#.....",
+    "....######################..%##...",
+    "......##################..........",
+]
+
+$SKY = [[26, 16, 51], [74, 30, 84], [170, 60, 100], [246, 128, 90], [255, 190, 120]]
+$SEA = [[60, 34, 84], [10, 12, 36]]
+$SUN = [[255, 230, 120], [255, 90, 110]]
+$DARK = [27, 16, 40]
+$STONE = [66, 44, 80]
+$RIM = [255, 150, 120]
+
+$S = { t = 0.0, px = null, stars = [] }
+
+define $mix(a, b, k)
+    if k < 0 then k = 0
+    if k > 1 then k = 1
+    return [integer(a[0] + (b[0] - a[0]) * k), integer(a[1] + (b[1] - a[1]) * k), integer(a[2] + (b[2] - a[2]) * k)]
+
+define $ramp(stops, k)
+    n = stops->len() - 1
+    at = k * n
+    i = integer(at)
+    if i >= n then return stops[n]
+    return mix(stops[i], stops[i + 1], at - i)
+
+define $setup()
+    S.px = Pixels.new(Tui.w, Tui.h * 2)
+    S.stars = []
+    seed = 7
+    for i in Tui.w / 2
+        seed = (seed * 1103515245 + 12345) % 2147483648
+        x = seed % Tui.w
+        seed = (seed * 1103515245 + 12345) % 2147483648
+        y = seed % (Tui.h * 2 / 3)
+        S.stars->push([x, y, (seed % 628) / 100.0])
+
+define $insun(x, y, cx, cy, r, t)
+    dx = x - cx
+    dy = (y - cy) * 1.0
+    if dx * dx + dy * dy > r * r then return false
+    k = (y - (cy - r)) / (r * 1.0)
+    if k < 0.4 then return true
+    v = y + t * 3
+    band = v - Math.floor(v / 7) * 7
+    return band > (k - 0.3) * 6
+
+define $sprite(rows, x0, y0)
+    p = S.px
+    for y in rows->len()
+        row = rows[y]
+        for x in row->len()
+            ch = row->sub(x, x + 1)
+            if ch != "."
+                c = DARK
+                above = "."
+                if y > 0 then above = rows[y - 1]->sub(x, x + 1)
+                if above == "." or ch == "%" then c = RIM
+                p->set(x0 + x, y0 + y, c)
+
+define $rock(cx, base, rx, ry, t)
+    p = S.px
+    for y in ry
+        k = 1.0 - (y * 1.0) / ry
+        half = integer(rx * Math.sqrt(Math.sqrt(1 - k * k * k * k)) + Math.sin(y * 2.1) * 1.5)
+        for i in 2 * half + 1
+            c = STONE
+            if i > 2 * half - 2 then c = mix(STONE, RIM, 0.5)
+            if i < 2 then c = mix(STONE, DARK, 0.6)
+            p->set(cx - half + i, base - ry + y, c)
+    for i in 2 * rx + 7
+        if Math.sin(i * 0.9 + t * 4) > -0.3
+            p->set(cx - rx - 3 + i, base, mix(STONE, [255, 220, 200], 0.4))
+
+define $scene()
+    p = S.px
+    w = p.w
+    h = p.h
+    t = S.t
+    hz = h * 11 / 20
+    cx = w / 2
+    r = h * 7 / 25
+    for y in hz
+        sky = ramp(SKY, (y * 1.0) / hz)
+        for x in w
+            if insun(x, y, cx, hz, r, t)
+                p->set(x, y, ramp(SUN, (y - hz + r) / (r * 1.0)))
+            else
+                p->set(x, y, sky)
+    for s in S.stars
+        if s[1] < hz - r
+            glow = (Math.sin(t * 2 + s[2]) + 1) / 2
+            p->set(s[0], s[1], mix(ramp(SKY, (s[1] * 1.0) / hz), [255, 240, 220], glow * (1 - (s[1] * 1.0) / hz)))
+    for y in h - hz
+        k = (y * 1.0) / (h - hz)
+        sea = ramp(SEA, k)
+        spread = r * (1.1 - k * 0.6)
+        for x in w
+            c = sea
+            dx = Math.abs(x - cx)
+            wave = Math.sin(x * 0.35 + y * 1.7 - t * 3)
+            if dx < spread and wave > -0.2 + dx / spread
+                c = mix(sea, SUN[1], 0.9 - k * 0.5)
+                if wave > 0.85 then c = SUN[0]
+            else if Math.sin(x * 0.21 - y * 2.3 + t * 1.5) > 0.97
+                c = mix(sea, [140, 120, 200], 0.35)
+            p->set(x, hz + y, c)
+    base = hz + (h - hz) / 2
+    rx = w / 5
+    rcx = w / 4
+    rock(rcx, base, rx, h / 7, t)
+    seal = TAILUP
+    if Math.sin(t * 1.7) > 0.6 then seal = TAILDOWN
+    sprite(seal, rcx - 17, base - h / 7 - seal->len() + 3)
+    p->draw(0, 0, Tui.w, Tui.h)
+
+Tui.init()
+setup()
+key = null
+while key != "q" and key != "esc" and key != "ctrl+c"
+    scene()
+    key = Tui.pollkey(50)
+    if key == "resize" then setup()
+    S.t += 0.12
+Tui.quit()
