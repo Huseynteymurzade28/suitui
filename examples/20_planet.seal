@@ -1,0 +1,121 @@
+include "../tui"
+include "math"
+
+$TOP = [255, 120, 190]
+$LOW = [90, 220, 255]
+$BACK = [60, 40, 100]
+$RING = [255, 205, 110]
+$MOON = [230, 225, 255]
+$S = { t = 0.0, d = null, stars = [], spin = true }
+
+define $mix(a, b, k)
+    if k < 0 then k = 0
+    if k > 1 then k = 1
+    return [integer(a[0] + (b[0] - a[0]) * k), integer(a[1] + (b[1] - a[1]) * k), integer(a[2] + (b[2] - a[2]) * k)]
+
+define $setup()
+    S.d = Dots.new(Tui.w * 2, Tui.h * 4)
+    S.stars = []
+    seed = 11
+    for i in Tui.w
+        seed = (seed * 1103515245 + 12345) % 2147483648
+        x = seed % S.d.w
+        seed = (seed * 1103515245 + 12345) % 2147483648
+        y = seed % S.d.h
+        S.stars->push([x, y, (seed % 628) / 100.0])
+
+define $globe()
+    pts = []
+    for i in 9
+        lat = (i - 4) * 0.33
+        y = Math.sin(lat)
+        r = Math.cos(lat)
+        for j in 160
+            a = j * 6.2832 / 160
+            pts->push([r * Math.cos(a), y, r * Math.sin(a)])
+    for j in 12
+        a = j * 6.2832 / 12
+        for i in 90
+            lat = (i - 45) * 3.1416 / 90
+            pts->push([Math.cos(lat) * Math.cos(a), Math.sin(lat), Math.cos(lat) * Math.sin(a)])
+    return pts
+
+$GLOBE = globe()
+
+define $moon(x, y, r)
+    n = integer(r)
+    for dy in 2 * n + 1
+        for dx in 2 * n + 1
+            u = dx - n
+            v = dy - n
+            if u * u + v * v <= r * r
+                c = MOON
+                if u + v > r * 0.4 then c = mix(MOON, BACK, 0.6)
+                S.d->set(x + u, y + v, c)
+
+define $frame()
+    d = S.d
+    d->clear()
+    t = S.t
+    for s in S.stars
+        if Math.sin(t * 1.5 + s[2]) > -0.2
+            d->set(s[0], s[1], mix(BACK, [255, 240, 220], (Math.sin(t * 1.5 + s[2]) + 0.2) / 1.2))
+    cx = d.w / 2
+    cy = d.h / 2
+    R = d.h * 0.32
+    ca = Math.cos(t)
+    sa = Math.sin(t)
+    tilt = 0.45
+    ct = Math.cos(tilt)
+    st = Math.sin(tilt)
+    front = []
+    for p in GLOBE
+        x = p[0] * ca + p[2] * sa
+        z = p[2] * ca - p[0] * sa
+        y = p[1] * ct - z * st
+        z = p[1] * st + z * ct
+        if z > 0
+            front->push([cx + x * R, cy - y * R, mix(TOP, LOW, (1 - y) / 2), z])
+    ring = []
+    for j in 220
+        a = j * 6.2832 / 220 + t * 0.4
+        for k in 2
+            rr = 1.55 + k * 0.18
+            x = Math.cos(a) * rr
+            z = Math.sin(a) * rr
+            y = -z * st * 1.0
+            z = z * ct
+            sx = cx + x * R
+            sy = cy - y * R
+            if z < 0
+                if x * x + y * y > 1 then d->set(sx, sy, mix(RING, BACK, 0.55))
+            else
+                ring->push([sx, sy])
+    ma = t * 0.7 + 1.2
+    mx = Math.cos(ma) * 2.3
+    mz = Math.sin(ma) * 2.3
+    my = mz * 0.35
+    hidden = mz < 0 and mx * mx + my * my < 1
+    mr = R * 0.14
+    if mz < 0 and not hidden then moon(cx + mx * R, cy - my * R, mr)
+    for p in front
+        d->set(p[0], p[1], mix(BACK, p[2], 0.2 + p[3] * 0.8))
+    for p in ring
+        d->set(p[0], p[1], RING)
+    if mz >= 0 then moon(cx + mx * R, cy - my * R, mr)
+    d->draw(0, 0, Tui.w, Tui.h)
+    Tui.move(2, Tui.h - 1)
+    Tui.fg([150, 130, 200])
+    Tui.write("space: pause   q: quit")
+    Tui.reset()
+
+Tui.init()
+setup()
+key = null
+while key != "q" and key != "esc" and key != "ctrl+c"
+    frame()
+    key = Tui.pollkey(40)
+    if key == "resize" then setup()
+    if key == " " or key == "space" then S.spin = not S.spin
+    if S.spin then S.t += 0.06
+Tui.quit()
