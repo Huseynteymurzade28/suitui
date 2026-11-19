@@ -5,6 +5,7 @@ include "color"
 include "widget"
 include "layout"
 include "pixels"
+include "dots"
 
 $Tui = { version = "0.0.2" }
 

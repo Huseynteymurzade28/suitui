@@ -1,0 +1,86 @@
+$Dots = {}
+
+Dots.BITS = [[1, 8], [2, 16], [4, 32], [64, 128]]
+Dots.CHARS = []
+for i in 256
+    Dots.CHARS->push(Utf8.char(0x2800 + i))
+
+Dots.set = define(self, x, y, c)
+    x = integer(x)
+    y = integer(y)
+    if x < 0 or y < 0 or x >= self.w or y >= self.h then return null
+    i = (y / 4) * self.cw + x / 2
+    self.bits[i] = self.bits[i] | Dots.BITS[y % 4][x % 2]
+    if c != null then self.colors[i] = Pixels.rgb(c)
+
+Dots.unset = define(self, x, y)
+    x = integer(x)
+    y = integer(y)
+    if x < 0 or y < 0 or x >= self.w or y >= self.h then return null
+    i = (y / 4) * self.cw + x / 2
+    self.bits[i] = self.bits[i] & (255 - Dots.BITS[y % 4][x % 2])
+
+Dots.line = define(self, x0, y0, x1, y1, c)
+    x0 = integer(x0)
+    y0 = integer(y0)
+    x1 = integer(x1)
+    y1 = integer(y1)
+    dx = x1 - x0
+    dy = y1 - y0
+    sx = 1
+    sy = 1
+    if dx < 0
+        dx = -dx
+        sx = -1
+    if dy < 0
+        dy = -dy
+        sy = -1
+    err = dx - dy
+    while true
+        self->set(x0, y0, c)
+        if x0 == x1 and y0 == y1 then return null
+        e2 = 2 * err
+        if e2 > -dy
+            err -= dy
+            x0 += sx
+        if e2 < dx
+            err += dx
+            y0 += sy
+
+Dots.clear = define(self)
+    for i in self.cw * self.ch
+        self.bits[i] = 0
+        self.colors[i] = ""
+
+Dots.draw = define(self, x, y, w, h)
+    if w > self.cw then w = self.cw
+    if h > self.ch then h = self.ch
+    self.area = [x, y, w, h]
+    for row in h
+        Tui.move(x, y + row)
+        at = row * self.cw
+        for col in w
+            b = self.bits[at + col]
+            c = self.colors[at + col]
+            Tui.style = "0"
+            if b == 0
+                Tui.put(" ")
+            else
+                if c != "" then Tui.style = "0;38;" + c
+                Tui.put(Dots.CHARS[b])
+    Tui.reset()
+    Tui.dirty = true
+
+Dots.new = define(w, h)
+    cw = (w + 1) / 2
+    ch = (h + 3) / 4
+    d = { w = w, h = h, cw = cw, ch = ch, bits = [], colors = [], area = [0, 0, 0, 0] }
+    d.set = Dots.set
+    d.unset = Dots.unset
+    d.line = Dots.line
+    d.clear = Dots.clear
+    d.draw = Dots.draw
+    for i in cw * ch
+        d.bits->push(0)
+        d.colors->push("")
+    return d
