@@ -1,0 +1,17 @@
+include "../tui"
+
+Tui.resize(4, 2)
+d = Dots.new(6, 8)
+d->set(0, 0, "#ff0000")
+d->set(1, 3, null)
+d->set(2, 0, 42)
+d->unset(2, 0)
+d->line(0, 4, 5, 7, [1, 2, 3])
+d->set(9, 9, 1)
+d->draw(0, 0, 10, 10)
+for i in 8
+    print("'" + Tui.chars[i] + "'", Tui.styles[i])
+print(d.area)
+d->clear()
+d->draw(0, 0, 3, 2)
+print(Tui.chars)

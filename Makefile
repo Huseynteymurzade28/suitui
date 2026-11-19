@@ -29,6 +29,7 @@ test: all
 	$(SEAL) tests/input.seal | diff -u tests/input.expected -
 	$(SEAL) tests/mouse.seal | diff -u tests/mouse.expected -
 	$(SEAL) tests/pixels.seal | diff -u tests/pixels.expected -
+	$(SEAL) tests/dots.seal | diff -u tests/dots.expected -
 	@echo ok
 
 clean:
