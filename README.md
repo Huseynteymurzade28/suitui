@@ -46,6 +46,7 @@ make run EX=09
 | `17` | paint with the mouse: brushes, a palette, seal stamps |
 | `18` | seal todo: add, check off, edit and reorder tasks, kept in `~/.seal_todo` |
 | `19` | a seal watching the sunset, every cell is two pixels |
+| `20` | a ringed planet with a moon, drawn with braille dots |
 
 </details>
 
@@ -184,6 +185,22 @@ p->set(10, 7, "#ffd66b")
 p->fill(null)
 p->draw(0, 0, Tui.w, Tui.h)
 ```
+
+## Dots
+
+`Dots` draws with braille characters, every cell holds 2x4 dots, so an 80x24 terminal becomes 160x96.
+Fine enough for lines, curves and wireframes. Each cell has one color, the last dot set in it picks it.
+
+```
+d = Dots.new(Tui.w * 2, Tui.h * 4)
+d->line(0, 0, 40, 30, "#ffcd6e")
+d->set(80, 48, [90, 220, 255])
+d->draw(0, 0, Tui.w, Tui.h)
+```
+
+<p align="center">
+  <img src="docs/planet.gif" alt="planet example" width="560">
+</p>
 
 ## A real app
 
