@@ -165,6 +165,37 @@ Tui.attr = define(name)
     Tui.pen.attrs += ";" + string(Tui.ATTRS[name])
     Tui.restyle()
 
+Tui.sort = define(items, key)
+    n = items->len()
+    a = []
+    for it in items
+        a->push([key(it), it])
+    width = 1
+    while width < n
+        b = []
+        i = 0
+        while i < n
+            mid = i + width
+            if mid > n then mid = n
+            hi = i + 2 * width
+            if hi > n then hi = n
+            l = i
+            r = mid
+            while l < mid or r < hi
+                if r >= hi or (l < mid and not (a[r][0] < a[l][0]))
+                    b->push(a[l])
+                    l += 1
+                else
+                    b->push(a[r])
+                    r += 1
+            i = hi
+        a = b
+        width = width * 2
+    out = []
+    for p in a
+        out->push(p[1])
+    return out
+
 Tui.repeat = define(s, n)
     out = ""
     while n > 0
