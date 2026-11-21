@@ -1,0 +1,57 @@
+include "io"
+
+$Proc = { cpus = [], prev = [] }
+
+Proc.lines = define(path)
+    f = IO.open(path, "r")
+    if f == null then return []
+    lines = f->readlines()
+    f->close()
+    return lines
+
+Proc.cpu = define()
+    out = []
+    i = 0
+    for line in Proc.lines("/proc/stat")
+        if not String.startwith(line, "cpu") then stop
+        f = line->split(" ")
+        n = []
+        for k in 8
+            n->push(integer(f[k + 1]))
+        user = n[0]
+        nice = n[1]
+        sys = n[2] + n[5] + n[6]
+        total = 0
+        for v in n
+            total += v
+        if i >= Proc.prev->len() then Proc.prev->push([0, 0, 0, 0])
+        p = Proc.prev[i]
+        dt = total - p[3]
+        if dt <= 0 then dt = 1
+        out->push({ user = (user - p[0]) * 1.0 / dt, nice = (nice - p[1]) * 1.0 / dt, sys = (sys - p[2]) * 1.0 / dt })
+        Proc.prev[i] = [user, nice, sys, total]
+        i += 1
+    return out
+
+Proc.MEM = ["MemTotal", "MemFree", "Buffers", "Cached", "SReclaimable", "Shmem", "SwapTotal", "SwapFree"]
+
+Proc.mem = define()
+    m = {}
+    for line in Proc.lines("/proc/meminfo")
+        f = line->split(" ")
+        for k in Proc.MEM
+            if f[0] == k + ":" then m[k] = integer(f[1])
+    cache = m["Cached"] + m["SReclaimable"] - m["Shmem"]
+    used = m["MemTotal"] - m["MemFree"] - m["Buffers"] - cache
+    return {
+        total = m["MemTotal"], used = used, buffers = m["Buffers"], cache = cache,
+        swap = m["SwapTotal"], swapused = m["SwapTotal"] - m["SwapFree"],
+    }
+
+Proc.load = define()
+    f = Proc.lines("/proc/loadavg")[0]->split(" ")
+    tasks = f[3]->split("/")
+    return { avg = [f[0], f[1], f[2]], running = integer(tasks[0]), total = integer(tasks[1]) }
+
+Proc.uptime = define()
+    return integer(Proc.lines("/proc/uptime")[0]->split(".")[0])
