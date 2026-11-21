@@ -18,6 +18,9 @@ EX ?= 00
 run: all
 	$(SEAL) $(wildcard examples/$(EX)_*.seal)
 
+top: all
+	$(SEAL) apps/sealtop/sealtop.seal
+
 test: all
 	$(SEAL) examples/00_hello.seal
 	$(SEAL) tests/keys.seal < tests/keys.in | diff -u tests/keys.expected -
@@ -39,4 +42,4 @@ clean:
 distclean: clean
 	$(MAKE) -C $(SEAL_DIR) clean
 
-.PHONY: all run test clean distclean
+.PHONY: all run top test clean distclean
