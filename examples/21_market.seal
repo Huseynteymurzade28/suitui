@@ -1,0 +1,175 @@
+include "../tui"
+include "math"
+
+$UP = "#7ee081"
+$DOWN = "#ff5c7a"
+$NAMES = ["Cotton", "Button", "Olive", "Peanut", "Caramel", "Smoke", "Pebble", "Mochi"]
+$S = { tick = 0, paused = false, trades = [], volume = 0, pick = 0 }
+
+define $two(n)
+    if n < 10 then return "0" + string(n)
+    return string(n)
+
+define $money(v)
+    n = integer(v * 100 + 0.5)
+    return string(n / 100) + "." + two(n % 100)
+
+define $pad(s, w)
+    return s + Tui.repeat(" ", w - Tui.width(s))
+
+define $lpad(s, w)
+    return Tui.repeat(" ", w - Tui.width(s)) + s
+
+define $fish(name, color, fill, price, wild)
+    return { name = name, color = color, fill = fill, price = price, base = price, wild = wild, push = 0.0, values = [] }
+
+$FISH = [
+    fish("herring", "#ff8fab", "#5c2a3e", 6.0, 0.16),
+    fish("mackerel", "#5ad8ff", "#1b4a5e", 9.0, 0.18),
+    fish("squid", "#ffd166", "#5a4718", 3.5, 0.14),
+]
+
+$PRICES = Chart.new()
+for f in FISH
+    f.line = PRICES->series(f.name, f.color)
+    f.line.values = f.values
+
+$VOLUME = Chart.new()
+VOLUME.min = 0
+VOLUME.legend = false
+$VOL = VOLUME->series("kg", null)
+VOL.fill = "#9d7ff0"
+
+define $trade(f)
+    side = Math.random(2)
+    kg = 2 + Math.random(40)
+    who = NAMES[Math.random(NAMES->len())]
+    arrow = "▼"
+    color = DOWN
+    if side == 1
+        arrow = "▲"
+        color = UP
+        f.push += kg / 150.0
+    else
+        f.push -= kg / 150.0
+    S.volume += kg
+    text = arrow + " " + pad(who, 8) + lpad(string(kg), 2) + " kg "
+    S.trades->push({ time = clock(), text = text, fish = f, price = money(f.price), color = color })
+    if S.trades->len() > 80 then S.trades->remove(0)
+
+define $clock()
+    s = 9 * 3600 + 30 * 60 + S.tick
+    return two(s / 3600 % 24) + ":" + two(s / 60 % 60) + ":" + two(s % 60)
+
+define $step()
+    S.tick += 1
+    S.volume = 0
+    for f in FISH
+        if Math.random(9) == 0 then trade(f)
+        S.volume += Math.random(6)
+        noise = (Math.random(201) - 100) / 100.0 * f.wild
+        f.push = f.push * 0.93
+        f.price += noise + f.push * 0.3 + (f.base - f.price) * 0.03
+        if f.price < 0.5 then f.price = 0.5
+        f.values->push(f.price)
+        if f.values->len() > 600 then f.values->remove(0)
+    VOL.values->push(S.volume)
+    if VOL.values->len() > 600 then VOL.values->remove(0)
+
+define $drawticker(self, x, y, w, h)
+    f = self.fish
+    vs = f.values
+    open = vs[0]
+    if vs->len() > 120 then open = vs[vs->len() - 120]
+    change = (f.price - open) * 100 / open
+    Tui.move(x, y)
+    Tui.fg(f.color)
+    Tui.attr("bold")
+    Tui.write(f.name)
+    Tui.reset()
+    Tui.move(x + w - 7, y)
+    Tui.write(lpad(money(f.price), 7))
+    Tui.move(x, y + 1)
+    if change >= 0
+        Tui.fg(UP)
+        Tui.write("▲ " + Chart.fmt(change) + "%")
+    else
+        Tui.fg(DOWN)
+        Tui.write("▼ " + Chart.fmt(-change) + "%")
+    self.spark->draw(x + 10, y + 1, w - 10, 1)
+
+define $ticker(f)
+    spark = Sparkline.new(f.color)
+    spark.values = f.values
+    f.box = Box.new("", { fish = f, spark = spark, draw = drawticker })
+    return f.box
+
+define $drawtrades(self, x, y, w, h)
+    from = S.trades->len() - h
+    if from < 0 then from = 0
+    for i in h
+        if from + i >= S.trades->len() then stop
+        t = S.trades[from + i]
+        Tui.move(x, y + i)
+        Tui.fg("bright_black")
+        Tui.write(t.time + " ")
+        Tui.fg(t.color)
+        Tui.write(t.text)
+        Tui.fg(t.fish.color)
+        Tui.write(Utf8.fit(t.fish.name, w - 32))
+        Tui.move(x + w - 6, y + i)
+        Tui.fg("bright_black")
+        Tui.write(lpad(t.price, 6))
+    Tui.reset()
+
+$TITLE = Label.new(" 🦭 seal fish market")
+TITLE.fg = "#ffd166"
+$CLOCK = Label.new("")
+CLOCK.align = "right"
+CLOCK.fg = "bright_black"
+$HINT = Label.new("tab pick a fish   space pause   q quit")
+HINT.align = "center"
+HINT.fg = "bright_black"
+
+$MAIN = Box.new("price per kg", PRICES)
+MAIN.fg = "#8a7fb0"
+$TRADES = Box.new("trades", { draw = drawtrades })
+TRADES.fg = "#8a7fb0"
+$KG = Box.new("kg traded", VOLUME)
+KG.fg = "#8a7fb0"
+$TICKERS = Row.new([[ticker(FISH[0]), "fill"], [ticker(FISH[1]), "fill"], [ticker(FISH[2]), "fill"]])
+
+$ROOT = Col.new([
+    [Row.new([[TITLE, "fill"], [CLOCK, 20]]), 1],
+    [TICKERS, 4],
+    [Row.new([[Col.new([[MAIN, "fill"], [KG, 8]]), "fill"], [TRADES, 44]]), "fill"],
+    [HINT, 1],
+])
+
+define $pick(n)
+    S.pick = n
+    for i in FISH->len()
+        f = FISH[i]
+        f.line.fill = null
+        f.box.fg = f.fill
+        if i == n
+            f.line.fill = f.fill
+            f.box.fg = f.color
+
+pick(0)
+for i in 400
+    step()
+S.trades = []
+
+Tui.init()
+key = ""
+while key != "q" and key != "ctrl+c"
+    CLOCK.text = clock() + " "
+    Tui.clear()
+    ROOT->draw(0, 0, Tui.w, Tui.h)
+    key = Tui.pollkey(60)
+    if key == "space" then S.paused = not S.paused
+    if key == "tab" then pick((S.pick + 1) % FISH->len())
+    if key == "shift+tab" then pick((S.pick + FISH->len() - 1) % FISH->len())
+    if key == null and not S.paused then step()
+Tui.quit()
