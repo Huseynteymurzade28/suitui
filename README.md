@@ -95,6 +95,7 @@ list->key(Tui.readkey())
 | `Box` | a border and a title around another widget |
 | `ListView` | a scrolling list with a selected item |
 | `TextInput` | one line of text with a cursor, scrolls when it gets long |
+| `Table` | rows and columns under a header, click a header to sort |
 | `Button` | calls a function on enter, space or a click |
 
 <p align="center">
@@ -249,6 +250,8 @@ list.paint = define(self, at)
 ## sealtop
 
 A small htop, the first real program built on suitui. Everything it shows is read from `/proc`.
+Up and down walk the process list, `P` `M` `T` `N` `U` sort by cpu, memory, time, pid or user,
+clicking a column header sorts by it, `p` shows the full command line.
 
 ```
 make top
