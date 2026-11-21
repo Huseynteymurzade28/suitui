@@ -1,14 +1,30 @@
 include "../../tui"
+include "system"
 include "proc"
 
-$USER = "#7ee081"
-$NICE = "#5ad8ff"
-$SYS = "#ff5c7a"
-$BUF = "#5ad8ff"
-$CACHE = "#ffd166"
-$LABEL = "#5ad8ff"
-$DIM = "bright_black"
-$S = { cpu = [], mem = null, load = null, up = 0 }
+$GREEN = [126, 224, 129]
+$YELLOW = [255, 209, 102]
+$RED = [255, 92, 122]
+$CYAN = [90, 216, 255]
+$PURPLE = [179, 136, 255]
+$PINK = [255, 143, 171]
+$DIM = [70, 70, 90]
+$TEXT = [200, 200, 215]
+$PARTS = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"]
+$S = { frame = 0, cores = [], total = null, mem = null, load = null, up = 0, host = "" }
+
+define $mix(a, b, k)
+    if k < 0 then k = 0
+    if k > 1 then k = 1
+    return [integer(a[0] + (b[0] - a[0]) * k), integer(a[1] + (b[1] - a[1]) * k), integer(a[2] + (b[2] - a[2]) * k)]
+
+define $heat(k)
+    if k < 0.5 then return mix(GREEN, YELLOW, k * 2)
+    return mix(YELLOW, RED, k * 2 - 1)
+
+define $cool(k)
+    if k < 0.5 then return mix(CYAN, PURPLE, k * 2)
+    return mix(PURPLE, PINK, k * 2 - 1)
 
 define $two(n)
     if n < 10 then return "0" + string(n)
@@ -16,135 +32,186 @@ define $two(n)
 
 define $size(k)
     if k >= 1024 * 1024
-        n = integer(k * 100.0 / (1024 * 1024) + 0.5)
-        return string(n / 100) + "." + two(n % 100) + "G"
+        n = integer(k * 10.0 / (1024 * 1024) + 0.5)
+        return string(n / 10) + "." + string(n % 10) + "G"
     if k >= 1024 then return string(k / 1024) + "M"
     return string(k) + "K"
 
-define $bar(x, y, w, label, parts, text)
+define $lpad(s, w)
+    return Tui.repeat(" ", w - Tui.width(s)) + s
+
+define $bar(x, y, w, k, paint)
+    if k < 0 then k = 0
+    if k > 1 then k = 1
+    eighths = integer(k * w * 8 + 0.5)
     Tui.move(x, y)
-    Tui.fg(LABEL)
-    Tui.write(label)
-    Tui.fg("white")
-    Tui.attr("bold")
-    Tui.write("[")
-    Tui.reset()
-    inner = w - Tui.width(label) - 2
-    if inner < 1 then return null
-    tx = inner - Tui.width(text)
-    at = 0
-    for p in parts
-        n = integer(p[0] * inner + 0.5)
-        if at + n > inner then n = inner - at
-        Tui.fg(p[1])
-        for i in n
-            if at >= tx
-                Tui.fg(DIM)
-                Tui.write(Utf8.split(text)[at - tx])
-            else
-                Tui.write("|")
-            at += 1
-    Tui.fg(DIM)
-    while at < inner
-        if at >= tx
-            Tui.write(Utf8.split(text)[at - tx])
+    for i in w
+        n = eighths - i * 8
+        if n > 8 then n = 8
+        if n <= 0
+            Tui.fg(DIM)
+            Tui.write("─")
         else
-            Tui.write(" ")
-        at += 1
-    Tui.fg("white")
-    Tui.attr("bold")
-    Tui.write("]")
+            Tui.fg(paint(i * 1.0 / w))
+            Tui.write(PARTS[n])
     Tui.reset()
 
-define $pct(v)
-    n = integer(v * 1000 + 0.5)
-    return string(n / 10) + "." + string(n % 10) + "%"
+define $ease(v, t)
+    return v + (t - v) * 0.25
 
-define $info(x, y, name, parts)
+define $core(name)
+    spark = Sparkline.new(GREEN)
+    spark.min = 0
+    spark.max = 100
+    return { name = name, now = 0.0, want = 0.0, spark = spark }
+
+define $drawcore(c, x, y, w)
     Tui.move(x, y)
-    Tui.fg(LABEL)
-    Tui.write(name + ": ")
-    for p in parts
-        Tui.fg(p[1])
-        if p[1] != DIM then Tui.attr("bold")
-        Tui.write(p[0])
-        Tui.reset()
+    Tui.fg(TEXT)
+    Tui.write(lpad(c.name, 3) + " ")
+    sw = w / 4
+    bw = w - 4 - 5 - sw - 1
+    bar(x + 4, y, bw, c.now, heat)
+    Tui.move(x + 4 + bw, y)
+    Tui.fg(heat(c.now))
+    Tui.write(lpad(string(integer(c.now * 100 + 0.5)) + "%", 5))
+    c.spark.color = heat(c.now)
+    c.spark->draw(x + w - sw, y, sw, 1)
 
-define $clock(s)
-    out = two(s / 3600 % 24) + ":" + two(s / 60 % 60) + ":" + two(s % 60)
-    if s >= 86400 then out = string(s / 86400) + " days, " + out
-    return out
-
-define $drawheader(self, x, y, w, h)
-    cores = S.cpu->len() - 1
-    rows = (cores + 1) / 2
-    half = (w - 1) / 2
-    for i in cores
-        c = S.cpu[i + 1]
+define $drawcpu(self, x, y, w, h)
+    drawcore(S.total, x, y, w)
+    half = (w - 2) / 2
+    rows = (S.cores->len() + 1) / 2
+    for i in S.cores->len()
         cx = x
-        cy = y + i
+        cy = y + 2 + i
         if i >= rows
-            cx = x + half + 1
-            cy = y + i - rows
-        label = string(i)
-        if i < 10 and cores > 10 then label = " " + label
-        bar(cx, cy, half, label, [[c.nice, NICE], [c.user, USER], [c.sys, SYS]], pct(c.user + c.nice + c.sys))
-    m = S.mem
-    t = m.total * 1.0
-    bar(x, y + rows, half, "Mem", [[m.used / t, USER], [m.buffers / t, BUF], [m.cache / t, CACHE]], size(m.used) + "/" + size(m.total))
-    sw = 0.0
-    if m.swap > 0 then sw = m.swapused * 1.0 / m.swap
-    bar(x, y + rows + 1, half, "Swp", [[sw, SYS]], size(m.swapused) + "/" + size(m.swap))
-    l = S.load
-    rx = x + half + 3
-    info(rx, y + rows, "Threads", [[string(l.total), "white"], [", ", DIM], [string(l.running), USER], [" running", DIM]])
-    info(rx, y + rows + 1, "Load average", [[l.avg[0] + " ", "white"], [l.avg[1] + " ", LABEL], [l.avg[2], DIM]])
-    info(rx, y + rows + 2, "Uptime", [[clock(S.up), "white"]])
+            cx = x + half + 2
+            cy = y + 2 + i - rows
+        drawcore(S.cores[i], cx, cy, half)
 
-$HEADER = { draw = drawheader }
-$HISTORY = Chart.new()
-HISTORY.min = 0
-HISTORY.max = 100
-HISTORY.step = 3
-$BUSY = HISTORY->series("cpu", USER)
-BUSY.fill = "#2b5a32"
-$USED = HISTORY->series("mem", CACHE)
-$GRAPH = Box.new("history", HISTORY)
-GRAPH.fg = DIM
+define $label(x, y, name, value, color)
+    Tui.move(x, y)
+    Tui.fg(DIM)
+    Tui.write(name)
+    Tui.move(x + 8, y)
+    Tui.fg(color)
+    Tui.attr("bold")
+    Tui.write(value)
+    Tui.reset()
+
+define $drawmem(self, x, y, w, h)
+    m = S.mem
+    label(x, y, "mem", size(m.used) + " / " + size(m.total), PURPLE)
+    bar(x, y + 1, w, m.now, cool)
+    label(x, y + 3, "swap", size(m.swapused) + " / " + size(m.swap), PINK)
+    bar(x, y + 4, w, m.swapnow, cool)
+    l = S.load
+    label(x, y + 6, "load", l.avg[0] + "  " + l.avg[1] + "  " + l.avg[2], YELLOW)
+    label(x, y + 7, "threads", string(l.total) + ", " + string(l.running) + " running", CYAN)
+    up = S.up
+    t = two(up / 3600 % 24) + ":" + two(up / 60 % 60) + ":" + two(up % 60)
+    if up >= 86400 then t = string(up / 86400) + "d " + t
+    label(x, y + 8, "uptime", t, GREEN)
+
+define $drawtitle(self, x, y, w, h)
+    Tui.move(x, y)
+    Tui.fg(PINK)
+    Tui.attr("bold")
+    Tui.write(" 🦭 sealtop")
+    Tui.reset()
+    Tui.fg(DIM)
+    Tui.write("  " + S.host)
+    clock = System.date("%H:%M:%S")
+    Tui.move(x + w - Tui.width(clock) - 1, y)
+    Tui.fg(TEXT)
+    Tui.write(clock)
+    Tui.reset()
 
 define $drawfoot(self, x, y, w, h)
     Tui.move(x, y)
-    for k in [["q", "Quit"]]
-        Tui.bg(LABEL)
-        Tui.fg("black")
-        Tui.write(" " + k[0] + " ")
-        Tui.reset()
-        Tui.write(" " + k[1] + "  ")
+    Tui.bg(PINK)
+    Tui.fg("black")
+    Tui.write(" q ")
+    Tui.reset()
+    Tui.fg(TEXT)
+    Tui.write(" quit")
+    Tui.reset()
 
-$FOOT = { draw = drawfoot }
+$HISTORY = Chart.new()
+HISTORY.min = 0
+HISTORY.max = 100
+HISTORY.axis = DIM
+$BUSY = HISTORY->series("cpu", GREEN)
+BUSY.ramp = [[30, 70, 45], [70, 75, 40], [95, 40, 55]]
+$USED = HISTORY->series("mem", PURPLE)
+
+$CPU = Box.new("cpu", { draw = drawcpu })
+CPU.fg = [80, 140, 95]
+$MEM = Box.new("memory", { draw = drawmem })
+MEM.fg = [120, 95, 170]
+$GRAPH = Box.new("history", HISTORY)
+GRAPH.fg = [70, 110, 140]
+GRAPH.pad = 0
 
 define $sample()
-    S.cpu = Proc.cpu()
-    S.mem = Proc.mem()
+    cpu = Proc.cpu()
+    if S.total == null
+        S.total = core("all")
+        for i in cpu->len() - 1
+            S.cores->push(core(string(i)))
+    all = [S.total]
+    for c in S.cores
+        all->push(c)
+    for i in cpu->len()
+        c = all[i]
+        c.want = cpu[i].user + cpu[i].nice + cpu[i].sys
+        c.spark.values->push(c.want * 100)
+        if c.spark.values->len() > 60 then c.spark.values->remove(0)
+    m = Proc.mem()
+    if S.mem == null
+        m.now = 0.0
+        m.swapnow = 0.0
+    else
+        m.now = S.mem.now
+        m.swapnow = S.mem.swapnow
+    S.mem = m
     S.load = Proc.load()
     S.up = Proc.uptime()
-    c = S.cpu[0]
-    BUSY.values->push((c.user + c.nice + c.sys) * 100)
-    USED.values->push(S.mem.used * 100.0 / S.mem.total)
-    if BUSY.values->len() > 1000
-        BUSY.values->remove(0)
-        USED.values->remove(0)
 
+define $animate()
+    S.total.now = ease(S.total.now, S.total.want)
+    for c in S.cores
+        c.now = ease(c.now, c.want)
+    m = S.mem
+    m.now = ease(m.now, m.used * 1.0 / m.total)
+    sw = 0.0
+    if m.swap > 0 then sw = m.swapused * 1.0 / m.swap
+    m.swapnow = ease(m.swapnow, sw)
+    if S.frame % 3 == 0
+        BUSY.values->push(S.total.now * 100)
+        USED.values->push(m.now * 100)
+        if BUSY.values->len() > 1000
+            BUSY.values->remove(0)
+            USED.values->remove(0)
+
+S.host = Proc.lines("/proc/sys/kernel/hostname")[0]
 sample()
-rows = (S.cpu->len()) / 2
-$ROOT = Col.new([[HEADER, rows + 3], [GRAPH, "fill"], [FOOT, 1]])
-ROOT.gap = 1
+rows = (S.cores->len() + 1) / 2
+$ROOT = Col.new([
+    [{ draw = drawtitle }, 1],
+    [Row.new([[CPU, "fill"], [MEM, 38]]), rows + 4],
+    [GRAPH, "fill"],
+    [{ draw = drawfoot }, 1],
+])
 
 Tui.init()
 key = ""
 while key != "q" and key != "ctrl+c" and key != "f10"
+    S.frame += 1
+    if S.frame % 8 == 0 then sample()
+    animate()
     Tui.clear()
-    ROOT->draw(1, 1, Tui.w - 2, Tui.h - 1)
-    key = Tui.pollkey(500)
-    if key == null then sample()
+    ROOT->draw(0, 0, Tui.w, Tui.h)
+    key = Tui.pollkey(33)
 Tui.quit()
