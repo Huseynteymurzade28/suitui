@@ -251,7 +251,8 @@ list.paint = define(self, at)
 
 A small htop, the first real program built on suitui. Everything it shows is read from `/proc`.
 Up and down walk the process list, `P` `M` `T` `N` `U` sort by cpu, memory, time, pid or user,
-clicking a column header sorts by it, `p` shows the full command line.
+clicking a column header sorts by it, `p` shows the full command line. `/` filters by command,
+user or pid as you type, `F9` asks which signal to send to the selected process.
 
 ```
 make top
