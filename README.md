@@ -47,6 +47,7 @@ make run EX=09
 | `18` | seal todo: add, check off, edit and reorder tasks, kept in `~/.seal_todo` |
 | `19` | a seal watching the sunset, every cell is two pixels |
 | `20` | a ringed planet with a moon, drawn with braille dots |
+| `21` | seal fish market: live prices, trades and a sparkline per fish |
 
 </details>
 
@@ -200,6 +201,33 @@ d->draw(0, 0, Tui.w, Tui.h)
 
 <p align="center">
   <img src="docs/planet.gif" alt="planet example" width="560">
+</p>
+
+## Charts
+
+`Chart` plots series as lines on a `Dots` canvas, with a value axis on the left and a legend.
+Push numbers onto `series.values`, the newest one sits at the right edge.
+
+```
+c = Chart.new()
+cpu = c->series("cpu", "#ff8fab")
+cpu.fill = "#5c2a3e"
+cpu.values->push(42)
+c->draw(0, 0, Tui.w, Tui.h)
+```
+
+`c.min` and `c.max` fix the axis, left `null` they follow what is on screen. A series with `fill`
+shades the area under its line, one with no color is only the fill. `Sparkline` is the small one,
+a row of `▁▂▃▅▇`:
+
+```
+s = Sparkline.new("#5ad8ff")
+s.values = cpu.values
+s->draw(0, 0, 20, 1)
+```
+
+<p align="center">
+  <img src="docs/market.gif" alt="fish market example" width="560">
 </p>
 
 ## A real app
