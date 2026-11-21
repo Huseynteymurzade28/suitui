@@ -55,3 +55,62 @@ Proc.load = define()
 
 Proc.uptime = define()
     return integer(Proc.lines("/proc/uptime")[0]->split(".")[0])
+
+Proc.names = {}
+Proc.tasks = {}
+Proc.jiffies = 0
+
+Proc.users = define()
+    for line in Proc.lines("/etc/passwd")
+        f = line->split(":")
+        if f->len() >= 3 then Proc.names[f[2]] = { uid = f[2], name = f[0] }
+
+Proc.user = define(uid)
+    if Map.has(Proc.names, uid) then return Proc.names[uid].name
+    return uid
+
+Proc.task = define(pid, comm)
+    t = { pid = pid, num = integer(pid), comm = comm, user = "?", cmd = "", ticks = -1, cpu = 0.0 }
+    for line in Proc.lines("/proc/" + pid + "/status")
+        if String.startwith(line, "Uid:")
+            t.user = Proc.user(line->split("\t")[1])
+            stop
+    t.cmd = TermIO.text("/proc/" + pid + "/cmdline")
+    if t.cmd == null or t.cmd == "" then t.cmd = "[" + comm + "]"
+    return t
+
+Proc.procs = define(memtotal, cores)
+    f = TermIO.text("/proc/stat")->split("\n")[0]->split(" ")
+    total = 0
+    for k in 8
+        total += integer(f[k + 1])
+    period = (total - Proc.jiffies) * 1.0 / cores
+    if period <= 0 then period = 1.0
+    first = Proc.jiffies == 0
+    Proc.jiffies = total
+    if Map.keys(Proc.names)->len() == 0 then Proc.users()
+    out = []
+    tasks = {}
+    for pid in TermIO.dir("/proc")->split("/")
+        if not String.isdigit(pid) then skip
+        stat = TermIO.text("/proc/" + pid + "/stat")
+        if stat == null then skip
+        parts = stat->split(")")
+        rest = parts[parts->len() - 1]->split(" ")
+        head = parts[0]
+        t = null
+        if Map.has(Proc.tasks, pid)
+            t = Proc.tasks[pid]
+        else
+            t = Proc.task(pid, head->sub(String.index(head, "(") + 1))
+        ticks = integer(rest[11]) + integer(rest[12])
+        if t.ticks >= 0 and not first then t.cpu = (ticks - t.ticks) * 100.0 / period
+        t.ticks = ticks
+        t.state = rest[0]
+        t.threads = integer(rest[17])
+        t.rss = integer(rest[21]) * 4
+        t.mem = t.rss * 100.0 / memtotal
+        tasks[t.pid] = t
+        out->push(t)
+    Proc.tasks = tasks
+    return out
