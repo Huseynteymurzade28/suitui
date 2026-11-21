@@ -134,6 +134,84 @@ ListView.new = define(items)
         draw = ListView.draw, base = ListView.base, key = ListView.key, mouse = ListView.mouse, wheel = ListView.wheel,
     }
 
+$Table = {}
+
+Table.draw = define(self, x, y, w, h)
+    if w < 2 or h < 2 then return null
+    self.head = [x, y, w, 1]
+    sizes = Layout.sizes(self.columns, w - 2, 1)
+    self.sizes = sizes
+    Tui.move(x, y)
+    Tui.fg(self.headfg)
+    Tui.bg(self.headbg)
+    Tui.attr("bold")
+    Tui.write(" ")
+    for c in self.columns->len()
+        name = self.columns[c][0]
+        if c == self.sort and self.desc then name += "▼"
+        if c == self.sort and not self.desc then name += "▲"
+        Tui.write(Table.align(name, sizes[c], self.columns[c][2]) + " ")
+    Tui.write(Tui.repeat(" ", w - 2 - Layout.total(sizes, 1)))
+    Tui.reset()
+    n = self.items->len()
+    h -= 1
+    y += 1
+    self.area = [x, y, w, h]
+    self.page = h
+    if self.top > n - h then self.top = n - h
+    if self.top < 0 then self.top = 0
+    if self.selected < self.top then self.top = self.selected
+    if self.selected >= self.top + h then self.top = self.selected - h + 1
+    for i in h
+        at = self.top + i
+        if at >= n then stop
+        row = self.items[at]
+        Tui.move(x, y + i)
+        self->base(at)
+        Tui.write(" ")
+        for c in self.columns->len()
+            self->base(at)
+            if self.paint != null then self->paint(at, c)
+            Tui.write(Table.align(row[c], sizes[c], self.columns[c][2]))
+            self->base(at)
+            Tui.write(" ")
+        Tui.write(Tui.repeat(" ", w - 2 - Layout.total(sizes, 1)))
+    Tui.reset()
+
+Table.align = define(s, w, how)
+    s = Utf8.fit(s, w)
+    pad = Tui.repeat(" ", w - Utf8.width(s))
+    if how == "right" then return pad + s
+    return s + pad
+
+Table.key = define(self, key)
+    if key == "click" and self.head != null
+        m = Key.mouse
+        a = self.head
+        if m.y == a[1] and m.x >= a[0] and m.x < a[0] + a[2]
+            at = a[0] + 1
+            for c in self.sizes->len()
+                if m.x < at + self.sizes[c] + 1
+                    if c == self.sort then self.desc = not self.desc
+                    self.sort = c
+                    return true
+                at += self.sizes[c] + 1
+            return false
+    return ListView.key(self, key)
+
+Table.new = define(columns)
+    t = ListView.new([])
+    t.columns = columns
+    t.sort = -1
+    t.desc = true
+    t.head = null
+    t.sizes = []
+    t.headfg = "black"
+    t.headbg = "cyan"
+    t.draw = Table.draw
+    t.key = Table.key
+    return t
+
 $Focus = {}
 
 Focus.set = define(self, at)
