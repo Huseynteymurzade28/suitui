@@ -1,0 +1,150 @@
+include "../../tui"
+include "proc"
+
+$USER = "#7ee081"
+$NICE = "#5ad8ff"
+$SYS = "#ff5c7a"
+$BUF = "#5ad8ff"
+$CACHE = "#ffd166"
+$LABEL = "#5ad8ff"
+$DIM = "bright_black"
+$S = { cpu = [], mem = null, load = null, up = 0 }
+
+define $two(n)
+    if n < 10 then return "0" + string(n)
+    return string(n)
+
+define $size(k)
+    if k >= 1024 * 1024
+        n = integer(k * 100.0 / (1024 * 1024) + 0.5)
+        return string(n / 100) + "." + two(n % 100) + "G"
+    if k >= 1024 then return string(k / 1024) + "M"
+    return string(k) + "K"
+
+define $bar(x, y, w, label, parts, text)
+    Tui.move(x, y)
+    Tui.fg(LABEL)
+    Tui.write(label)
+    Tui.fg("white")
+    Tui.attr("bold")
+    Tui.write("[")
+    Tui.reset()
+    inner = w - Tui.width(label) - 2
+    if inner < 1 then return null
+    tx = inner - Tui.width(text)
+    at = 0
+    for p in parts
+        n = integer(p[0] * inner + 0.5)
+        if at + n > inner then n = inner - at
+        Tui.fg(p[1])
+        for i in n
+            if at >= tx
+                Tui.fg(DIM)
+                Tui.write(Utf8.split(text)[at - tx])
+            else
+                Tui.write("|")
+            at += 1
+    Tui.fg(DIM)
+    while at < inner
+        if at >= tx
+            Tui.write(Utf8.split(text)[at - tx])
+        else
+            Tui.write(" ")
+        at += 1
+    Tui.fg("white")
+    Tui.attr("bold")
+    Tui.write("]")
+    Tui.reset()
+
+define $pct(v)
+    n = integer(v * 1000 + 0.5)
+    return string(n / 10) + "." + string(n % 10) + "%"
+
+define $info(x, y, name, parts)
+    Tui.move(x, y)
+    Tui.fg(LABEL)
+    Tui.write(name + ": ")
+    for p in parts
+        Tui.fg(p[1])
+        if p[1] != DIM then Tui.attr("bold")
+        Tui.write(p[0])
+        Tui.reset()
+
+define $clock(s)
+    out = two(s / 3600 % 24) + ":" + two(s / 60 % 60) + ":" + two(s % 60)
+    if s >= 86400 then out = string(s / 86400) + " days, " + out
+    return out
+
+define $drawheader(self, x, y, w, h)
+    cores = S.cpu->len() - 1
+    rows = (cores + 1) / 2
+    half = (w - 1) / 2
+    for i in cores
+        c = S.cpu[i + 1]
+        cx = x
+        cy = y + i
+        if i >= rows
+            cx = x + half + 1
+            cy = y + i - rows
+        label = string(i)
+        if i < 10 and cores > 10 then label = " " + label
+        bar(cx, cy, half, label, [[c.nice, NICE], [c.user, USER], [c.sys, SYS]], pct(c.user + c.nice + c.sys))
+    m = S.mem
+    t = m.total * 1.0
+    bar(x, y + rows, half, "Mem", [[m.used / t, USER], [m.buffers / t, BUF], [m.cache / t, CACHE]], size(m.used) + "/" + size(m.total))
+    sw = 0.0
+    if m.swap > 0 then sw = m.swapused * 1.0 / m.swap
+    bar(x, y + rows + 1, half, "Swp", [[sw, SYS]], size(m.swapused) + "/" + size(m.swap))
+    l = S.load
+    rx = x + half + 3
+    info(rx, y + rows, "Threads", [[string(l.total), "white"], [", ", DIM], [string(l.running), USER], [" running", DIM]])
+    info(rx, y + rows + 1, "Load average", [[l.avg[0] + " ", "white"], [l.avg[1] + " ", LABEL], [l.avg[2], DIM]])
+    info(rx, y + rows + 2, "Uptime", [[clock(S.up), "white"]])
+
+$HEADER = { draw = drawheader }
+$HISTORY = Chart.new()
+HISTORY.min = 0
+HISTORY.max = 100
+HISTORY.step = 3
+$BUSY = HISTORY->series("cpu", USER)
+BUSY.fill = "#2b5a32"
+$USED = HISTORY->series("mem", CACHE)
+$GRAPH = Box.new("history", HISTORY)
+GRAPH.fg = DIM
+
+define $drawfoot(self, x, y, w, h)
+    Tui.move(x, y)
+    for k in [["q", "Quit"]]
+        Tui.bg(LABEL)
+        Tui.fg("black")
+        Tui.write(" " + k[0] + " ")
+        Tui.reset()
+        Tui.write(" " + k[1] + "  ")
+
+$FOOT = { draw = drawfoot }
+
+define $sample()
+    S.cpu = Proc.cpu()
+    S.mem = Proc.mem()
+    S.load = Proc.load()
+    S.up = Proc.uptime()
+    c = S.cpu[0]
+    BUSY.values->push((c.user + c.nice + c.sys) * 100)
+    USED.values->push(S.mem.used * 100.0 / S.mem.total)
+    if BUSY.values->len() > 1000
+        BUSY.values->remove(0)
+        USED.values->remove(0)
+
+sample()
+rows = (S.cpu->len()) / 2
+$ROOT = Col.new([[HEADER, rows + 3], [GRAPH, "fill"], [FOOT, 1]])
+ROOT.gap = 1
+
+Tui.init()
+key = ""
+while key != "q" and key != "ctrl+c" and key != "f10"
+    Tui.clear()
+    ROOT->draw(1, 1, Tui.w - 2, Tui.h - 1)
+    key = Tui.pollkey(500)
+    if key == null then sample()
+Tui.quit()
