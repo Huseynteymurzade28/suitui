@@ -11,7 +11,7 @@ $PINK = [255, 143, 171]
 $DIM = [70, 70, 90]
 $TEXT = [200, 200, 215]
 $PARTS = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"]
-$S = { frame = 0, cores = [], total = null, mem = null, load = null, up = 0, host = "" }
+$S = { frame = 0, cores = [], total = null, mem = null, load = null, up = 0, host = "", raw = [], tasks = [], full = false, follow = false }
 
 define $mix(a, b, k)
     if k < 0 then k = 0
@@ -130,13 +130,107 @@ define $drawtitle(self, x, y, w, h)
 
 define $drawfoot(self, x, y, w, h)
     Tui.move(x, y)
-    Tui.bg(PINK)
-    Tui.fg("black")
-    Tui.write(" q ")
+    for k in [["q", "quit"], ["P", "cpu"], ["M", "mem"], ["T", "time"], ["N", "pid"], ["U", "user"], ["p", "path"]]
+        Tui.bg(PINK)
+        Tui.fg("black")
+        Tui.write(" " + k[0] + " ")
+        Tui.reset()
+        Tui.fg(TEXT)
+        Tui.write(" " + k[1] + "  ")
     Tui.reset()
-    Tui.fg(TEXT)
-    Tui.write(" quit")
-    Tui.reset()
+
+define $bypid(t)
+    return t.num
+
+define $byuser(t)
+    return t.user
+
+define $bystate(t)
+    return t.state
+
+define $bythreads(t)
+    return t.threads
+
+define $bycpu(t)
+    return t.cpu
+
+define $bymem(t)
+    return t.rss
+
+define $byticks(t)
+    return t.ticks
+
+define $bycmd(t)
+    return t.cmd
+
+$SORTS = [bypid, byuser, bystate, bythreads, bycpu, bymem, bymem, byticks, bycmd]
+
+define $fixed(v)
+    n = integer(v * 10 + 0.5)
+    return string(n / 10) + "." + string(n % 10)
+
+define $cputime(ticks)
+    m = ticks / 6000
+    out = two(ticks / 100 % 60) + "." + two(ticks % 100)
+    if m >= 60 then return string(m / 60) + "h" + two(m % 60) + ":" + out
+    return string(m) + ":" + out
+
+define $paintproc(self, at, c)
+    if at == self.selected then return null
+    t = S.tasks[at]
+    if c == 1
+        Tui.fg(TEXT)
+        if t.user == "root" then Tui.fg(RED)
+    if c == 2
+        Tui.fg(DIM)
+        if t.state == "R" then Tui.fg(GREEN)
+    if c == 3 then Tui.fg(DIM)
+    if c == 4
+        Tui.fg(heat(t.cpu / 100))
+        if t.cpu < 0.05 then Tui.fg(DIM)
+    if c == 5
+        Tui.fg(cool(t.mem / 10))
+        if t.mem < 0.05 then Tui.fg(DIM)
+    if c == 6 then Tui.fg(CYAN)
+    if c == 7 then Tui.fg(DIM)
+    if c == 8
+        Tui.fg(TEXT)
+        if String.startwith(t.cmd, "[") then Tui.fg(DIM)
+
+define $apply()
+    pid = null
+    if S.follow and S.tasks->len() > PROCS.selected then pid = S.tasks[PROCS.selected].num
+    tasks = Tui.sort(S.raw, SORTS[PROCS.sort])
+    if PROCS.desc
+        back = []
+        i = tasks->len() - 1
+        while i >= 0
+            back->push(tasks[i])
+            i -= 1
+        tasks = back
+    S.tasks = tasks
+    rows = []
+    for i in tasks->len()
+        t = tasks[i]
+        if t.num == pid then PROCS.selected = i
+        cmd = t.cmd
+        if not S.full then cmd = t.comm
+        rows->push([string(t.num), t.user, t.state, string(t.threads), fixed(t.cpu), fixed(t.mem), size(t.rss), cputime(t.ticks), cmd])
+    PROCS.items = rows
+    S.sort = [PROCS.sort, PROCS.desc]
+
+$PROCS = Table.new([
+    ["PID", 7, "right"], ["USER", 9, "left"], ["S", 1, "left"], ["THR", 4, "right"], ["CPU%", 5, "right"],
+    ["MEM%", 5, "right"], ["RES", 6, "right"], ["TIME+", 9, "right"], ["COMMAND", "fill", "left"],
+])
+PROCS.sort = 4
+PROCS.headbg = [60, 50, 90]
+PROCS.headfg = TEXT
+PROCS.hi = PINK
+PROCS.paint = paintproc
+$LIST = Box.new("processes", PROCS)
+LIST.fg = [140, 80, 110]
+LIST.pad = 0
 
 $HISTORY = Chart.new()
 HISTORY.min = 0
@@ -178,6 +272,9 @@ define $sample()
     S.mem = m
     S.load = Proc.load()
     S.up = Proc.uptime()
+    if S.frame % 32 == 0
+        S.raw = Proc.procs(m.total, S.cores->len())
+        apply()
 
 define $animate()
     S.total.now = ease(S.total.now, S.total.want)
@@ -196,16 +293,21 @@ define $animate()
             USED.values->remove(0)
 
 S.host = Proc.lines("/proc/sys/kernel/hostname")[0]
+S.sort = [4, true]
 sample()
+S.raw = Proc.procs(S.mem.total, S.cores->len())
+apply()
 rows = (S.cores->len() + 1) / 2
 $ROOT = Col.new([
     [{ draw = drawtitle }, 1],
     [Row.new([[CPU, "fill"], [MEM, 38]]), rows + 4],
-    [GRAPH, "fill"],
+    [GRAPH, 8],
+    [LIST, "fill"],
     [{ draw = drawfoot }, 1],
 ])
 
 Tui.init()
+Tui.track("click")
 key = ""
 while key != "q" and key != "ctrl+c" and key != "f10"
     S.frame += 1
@@ -214,4 +316,17 @@ while key != "q" and key != "ctrl+c" and key != "f10"
     Tui.clear()
     ROOT->draw(0, 0, Tui.w, Tui.h)
     key = Tui.pollkey(33)
+    if key != null
+        if key == "P" then PROCS.sort = 4
+        if key == "M" then PROCS.sort = 5
+        if key == "T" then PROCS.sort = 7
+        if key == "N" then PROCS.sort = 0
+        if key == "U" then PROCS.sort = 1
+        if key == "p"
+            S.full = not S.full
+            apply()
+        if key == "<" then PROCS.sort = (PROCS.sort + 8) % 9
+        if key == ">" then PROCS.sort = (PROCS.sort + 1) % 9
+        if PROCS->key(key) then S.follow = true
+        if PROCS.sort != S.sort[0] or PROCS.desc != S.sort[1] then apply()
 Tui.quit()
