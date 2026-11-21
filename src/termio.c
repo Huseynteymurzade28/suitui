@@ -1,3 +1,4 @@
+#include <dirent.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdio.h>
@@ -184,6 +185,57 @@ static void termio_char(seal_state *S)
     seal_pushlstring(S, &c, 1);
 }
 
+static void termio_dir(seal_state *S)
+{
+    DIR *d;
+    struct dirent *e;
+    char *out = NULL;
+    size_t len = 0, cap = 0, n;
+
+    seal_checkargc(S, 1);
+    if (!(d = opendir(seal_checkstring(S, 0)))) {
+        seal_pushnull(S);
+        return;
+    }
+    while ((e = readdir(d))) {
+        if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, ".."))
+            continue;
+        n = strlen(e->d_name);
+        if (len + n + 2 > cap) {
+            cap = (len + n + 2) * 2;
+            out = realloc(out, cap);
+        }
+        if (len)
+            out[len++] = '/';
+        memcpy(out + len, e->d_name, n);
+        len += n;
+    }
+    closedir(d);
+    seal_pushlstring(S, out ? out : "", len);
+    free(out);
+}
+
+static void termio_text(seal_state *S)
+{
+    char buf[4096];
+    size_t i, n;
+    FILE *f;
+
+    seal_checkargc(S, 1);
+    if (!(f = fopen(seal_checkstring(S, 0), "r"))) {
+        seal_pushnull(S);
+        return;
+    }
+    n = fread(buf, 1, sizeof(buf) - 1, f);
+    fclose(f);
+    for (i = 0; i < n; i++)
+        if (buf[i] == '\0')
+            buf[i] = ' ';
+    while (n > 0 && buf[n - 1] == ' ')
+        n--;
+    seal_pushlstring(S, buf, n);
+}
+
 static const seal_reg termiolib[] = {
     { "raw",     termio_raw },
     { "restore", termio_restore },
@@ -192,6 +244,8 @@ static const seal_reg termiolib[] = {
     { "flush",   termio_flush },
     { "size",    termio_size },
     { "char",    termio_char },
+    { "dir",     termio_dir },
+    { "text",    termio_text },
     { NULL, NULL }
 };
 
