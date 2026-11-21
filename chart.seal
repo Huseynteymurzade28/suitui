@@ -1,0 +1,83 @@
+$Chart = {}
+
+Chart.fmt = define(v)
+    if typeof(v) == "integer" then return string(v)
+    sign = ""
+    if v < 0
+        sign = "-"
+        v = -v
+    if v >= 10 then return sign + string(integer(v + 0.5))
+    n = integer(v * 10 + 0.5)
+    return sign + string(n / 10) + "." + string(n % 10)
+
+Chart.series = define(self, name, color)
+    s = { name = name, color = color, values = [] }
+    self.list->push(s)
+    return s
+
+Chart.labels = define(self, ph)
+    out = []
+    lo = self.min
+    hi = self.max
+    for r in ph
+        out->push("")
+    out[0] = self.fmt(hi)
+    out[ph - 1] = self.fmt(lo)
+    if ph >= 5 then out[(ph - 1) / 2] = self.fmt(hi - (hi - lo) * ((ph - 1) / 2) / (ph - 1.0))
+    return out
+
+Chart.draw = define(self, x, y, w, h)
+    self.area = [x, y, w, h]
+    ph = h - 1
+    if ph < 2 then return null
+    labels = self->labels(ph)
+    lw = 0
+    for s in labels
+        if Utf8.width(s) > lw then lw = Utf8.width(s)
+    pw = w - lw - 1
+    if pw < 1 then return null
+    d = self.dots
+    if d == null or d.cw != pw or d.ch != ph
+        d = Dots.new(pw * 2, ph * 4)
+        self.dots = d
+    else
+        d->clear()
+    lo = self.min
+    hi = self.max
+    n = d.w
+    for s in self.list
+        vs = s.values
+        from = vs->len() - n
+        if from < 0 then from = 0
+        px = null
+        py = null
+        for i in vs->len() - from
+            cx = n - (vs->len() - from) + i
+            cy = (d.h - 1) - (vs[from + i] - lo) * (d.h - 1.0) / (hi - lo)
+            if px == null
+                d->set(cx, cy, s.color)
+            else
+                d->line(px, py, cx, cy, s.color)
+            px = cx
+            py = cy
+    d->draw(x + lw + 1, y, pw, ph)
+    Tui.fg(self.axis)
+    for r in ph
+        Tui.move(x, y + r)
+        s = labels[r]
+        Tui.write(Tui.repeat(" ", lw - Utf8.width(s)) + s)
+        if s == ""
+            Tui.write("│")
+        else
+            Tui.write("┤")
+    Tui.move(x, y + ph)
+    Tui.write(Tui.repeat(" ", lw) + "└" + Tui.repeat("─", pw))
+    Tui.reset()
+
+Chart.new = define()
+    c = { list = [], min = 0, max = 100, axis = "bright_black", dots = null, area = [0, 0, 0, 0] }
+    c.series = Chart.series
+    c.labels = Chart.labels
+    c.fmt = Chart.fmt
+    c.draw = Chart.draw
+    return c
