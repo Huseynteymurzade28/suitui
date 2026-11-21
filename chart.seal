@@ -11,7 +11,7 @@ Chart.fmt = define(v)
     return sign + string(n / 10) + "." + string(n % 10)
 
 Chart.series = define(self, name, color)
-    s = { name = name, color = color, values = [] }
+    s = { name = name, color = color, fill = null, values = [] }
     self.list->push(s)
     return s
 
@@ -43,6 +43,25 @@ Chart.labels = define(self, lo, hi, ph)
     if ph >= 5 then out[(ph - 1) / 2] = self.fmt(hi - (hi - lo) * ((ph - 1) / 2) / (ph - 1.0))
     return out
 
+Chart.plot = define(self, d, s, lo, hi, n, fill)
+    vs = s.values
+    from = vs->len() - n
+    if from < 0 then from = 0
+    px = null
+    py = null
+    for i in vs->len() - from
+        cx = n - (vs->len() - from) + i
+        cy = (d.h - 1) - (vs[from + i] - lo) * (d.h - 1.0) / (hi - lo)
+        if fill
+            for k in d.h - integer(cy)
+                d->set(cx, integer(cy) + k, s.fill)
+        else if px == null
+            d->set(cx, cy, s.color)
+        else
+            d->line(px, py, cx, cy, s.color)
+        px = cx
+        py = cy
+
 Chart.draw = define(self, x, y, w, h)
     self.area = [x, y, w, h]
     ph = h - 1
@@ -67,20 +86,9 @@ Chart.draw = define(self, x, y, w, h)
     hi = r[1]
     n = d.w
     for s in self.list
-        vs = s.values
-        from = vs->len() - n
-        if from < 0 then from = 0
-        px = null
-        py = null
-        for i in vs->len() - from
-            cx = n - (vs->len() - from) + i
-            cy = (d.h - 1) - (vs[from + i] - lo) * (d.h - 1.0) / (hi - lo)
-            if px == null
-                d->set(cx, cy, s.color)
-            else
-                d->line(px, py, cx, cy, s.color)
-            px = cx
-            py = cy
+        if s.fill != null then self->plot(d, s, lo, hi, n, true)
+    for s in self.list
+        self->plot(d, s, lo, hi, n, false)
     d->draw(x + lw + 1, y, pw, ph)
     Tui.fg(self.axis)
     for r in ph
@@ -101,5 +109,6 @@ Chart.new = define()
     c.range = Chart.range
     c.labels = Chart.labels
     c.fmt = Chart.fmt
+    c.plot = Chart.plot
     c.draw = Chart.draw
     return c
