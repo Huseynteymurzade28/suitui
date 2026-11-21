@@ -11,7 +11,13 @@ Dots.set = define(self, x, y, c)
     if x < 0 or y < 0 or x >= self.w or y >= self.h then return null
     i = (y / 4) * self.cw + x / 2
     self.bits[i] = self.bits[i] | Dots.BITS[y % 4][x % 2]
-    if c != null then self.colors[i] = Pixels.rgb(c)
+    if c != null then self.colors[i] = self->rgb(c)
+
+Dots.rgb = define(self, c)
+    if c != self.last
+        self.last = c
+        self.code = "0;38;" + Pixels.rgb(c)
+    return self.code
 
 Dots.unset = define(self, x, y)
     x = integer(x)
@@ -66,7 +72,7 @@ Dots.draw = define(self, x, y, w, h)
             if b == 0
                 Tui.put(" ")
             else
-                if c != "" then Tui.style = "0;38;" + c
+                if c != "" then Tui.style = c
                 Tui.put(Dots.CHARS[b])
     Tui.reset()
     Tui.dirty = true
@@ -74,8 +80,9 @@ Dots.draw = define(self, x, y, w, h)
 Dots.new = define(w, h)
     cw = (w + 1) / 2
     ch = (h + 3) / 4
-    d = { w = w, h = h, cw = cw, ch = ch, bits = [], colors = [], area = [0, 0, 0, 0] }
+    d = { w = w, h = h, cw = cw, ch = ch, bits = [], colors = [], last = null, code = "", area = [0, 0, 0, 0] }
     d.set = Dots.set
+    d.rgb = Dots.rgb
     d.unset = Dots.unset
     d.line = Dots.line
     d.clear = Dots.clear
