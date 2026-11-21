@@ -1,0 +1,25 @@
+include "../tui"
+
+Tui.resize(24, 4)
+t = Table.new([["PID", 4, "right"], ["NAME", "fill", "left"], ["CPU", 4, "right"]])
+t.items = [["1", "init", "0.0"], ["42", "seal", "99.9"], ["7", "a very long name", "3"], ["8", "x", "1"]]
+t.sort = 2
+t.selected = 1
+t->draw(0, 0, 24, 4)
+for r in 4
+    line = ""
+    for i in 24
+        line += Tui.chars[r * 24 + i]
+    print("'" + line + "'")
+print(Tui.styles[0], Tui.styles[24], Tui.styles[48])
+print(t->key("down"), t.selected, t->key("end"), t.selected)
+t->draw(0, 0, 24, 4)
+print(t.top)
+Key.mouse.x = 20
+Key.mouse.y = 0
+print(t->key("click"), t.sort, t.desc)
+print(t->key("click"), t.sort, t.desc)
+Key.mouse.x = 2
+print(t->key("click"), t.sort, t.desc)
+Key.mouse.y = 1
+print(t->key("click"), t.selected)

@@ -34,6 +34,7 @@ test: all
 	$(SEAL) tests/pixels.seal | diff -u tests/pixels.expected -
 	$(SEAL) tests/dots.seal | diff -u tests/dots.expected -
 	$(SEAL) tests/chart.seal | diff -u tests/chart.expected -
+	$(SEAL) tests/table.seal | diff -u tests/table.expected -
 	@echo ok
 
 clean:
