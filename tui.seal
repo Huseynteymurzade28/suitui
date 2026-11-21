@@ -71,6 +71,18 @@ Tui.clear = define()
         Tui.styles[i] = "0"
     Tui.dirty = true
 
+Tui.shade = define(c)
+    st = "0;" + Color.sgr(c, 30)
+    for i in Tui.w * Tui.h
+        Tui.styles[i] = st
+    Tui.dirty = true
+
+Tui.blank = define(x, y, w, h)
+    line = Tui.repeat(" ", w)
+    for r in h
+        Tui.move(x, y + r)
+        Tui.write(line)
+
 Tui.move = define(x, y)
     Tui.x = x
     Tui.y = y

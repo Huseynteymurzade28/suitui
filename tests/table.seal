@@ -23,3 +23,13 @@ Key.mouse.x = 2
 print(t->key("click"), t.sort, t.desc)
 Key.mouse.y = 1
 print(t->key("click"), t.selected)
+
+Tui.resize(5, 2)
+Tui.move(0, 0)
+Tui.fg("red")
+Tui.write("abcde")
+Tui.reset()
+Tui.shade([1, 2, 3])
+print(Tui.chars, Tui.styles[0], Tui.styles[9])
+Tui.blank(1, 0, 3, 1)
+print(Tui.chars, Tui.styles[1])
