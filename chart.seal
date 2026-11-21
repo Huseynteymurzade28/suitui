@@ -102,13 +102,29 @@ Chart.draw = define(self, x, y, w, h)
     Tui.move(x, y + ph)
     Tui.write(Tui.repeat(" ", lw) + "└" + Tui.repeat("─", pw))
     Tui.reset()
+    if self.legend then self->key(x + lw + 1, y, pw)
+
+Chart.key = define(self, x, y, w)
+    size = 0
+    for s in self.list
+        size += Utf8.width(s.name) + 4
+    if size > w then return null
+    Tui.move(x + w - size, y)
+    for s in self.list
+        Tui.write(" ")
+        Tui.fg(s.color)
+        Tui.write("● ")
+        Tui.fg(self.axis)
+        Tui.write(s.name + " ")
+    Tui.reset()
 
 Chart.new = define()
-    c = { list = [], min = null, max = null, axis = "bright_black", dots = null, area = [0, 0, 0, 0] }
+    c = { list = [], min = null, max = null, axis = "bright_black", legend = true, dots = null, area = [0, 0, 0, 0] }
     c.series = Chart.series
     c.range = Chart.range
     c.labels = Chart.labels
     c.fmt = Chart.fmt
     c.plot = Chart.plot
+    c.key = Chart.key
     c.draw = Chart.draw
     return c
