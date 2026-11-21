@@ -236,6 +236,12 @@ static void termio_text(seal_state *S)
     seal_pushlstring(S, buf, n);
 }
 
+static void termio_kill(seal_state *S)
+{
+    seal_checkargc(S, 2);
+    seal_pushbool(S, kill(seal_checkint(S, 0), seal_checkint(S, 1)) == 0);
+}
+
 static const seal_reg termiolib[] = {
     { "raw",     termio_raw },
     { "restore", termio_restore },
@@ -246,6 +252,7 @@ static const seal_reg termiolib[] = {
     { "char",    termio_char },
     { "dir",     termio_dir },
     { "text",    termio_text },
+    { "kill",    termio_kill },
     { NULL, NULL }
 };
 
