@@ -1,0 +1,35 @@
+include "../tui"
+
+Tui.resize(14, 5)
+c = Chart.new()
+s = c->series("a", "#ff0000")
+s.fill = "#330000"
+for v in [0, 50, 100, 25]
+    s.values->push(v)
+c->draw(0, 0, 14, 5)
+for r in 5
+    line = ""
+    for i in 14
+        line += Tui.chars[r * 14 + i]
+    print(line)
+c.max = 200
+c.legend = false
+c->draw(0, 0, 14, 5)
+for r in 5
+    line = ""
+    for i in 14
+        line += Tui.chars[r * 14 + i]
+    print(line)
+print(Tui.styles[54], Tui.styles[37])
+print(Chart.fmt(3), Chart.fmt(2.25), Chart.fmt(-14.6), Chart.fmt(0.04))
+
+Tui.resize(6, 1)
+sp = Sparkline.new("green")
+for v in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    sp.values->push(v)
+sp->draw(0, 0, 6, 1)
+print(Tui.chars, Tui.styles[0])
+sp.min = 0
+sp.max = 20
+sp->draw(0, 0, 6, 1)
+print(Tui.chars)

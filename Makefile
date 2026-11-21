@@ -30,6 +30,7 @@ test: all
 	$(SEAL) tests/mouse.seal | diff -u tests/mouse.expected -
 	$(SEAL) tests/pixels.seal | diff -u tests/pixels.expected -
 	$(SEAL) tests/dots.seal | diff -u tests/dots.expected -
+	$(SEAL) tests/chart.seal | diff -u tests/chart.expected -
 	@echo ok
 
 clean:
