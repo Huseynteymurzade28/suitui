@@ -21,6 +21,13 @@ for r in 5
         line += Tui.chars[r * 14 + i]
     print(line)
 print(Tui.styles[54], Tui.styles[37])
+c.step = 3
+c->draw(0, 0, 14, 5)
+for r in 5
+    line = ""
+    for i in 14
+        line += Tui.chars[r * 14 + i]
+    print(line)
 print(Chart.fmt(3), Chart.fmt(2.25), Chart.fmt(-14.6), Chart.fmt(0.04))
 
 Tui.resize(6, 1)

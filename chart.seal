@@ -48,14 +48,20 @@ Chart.plot = define(self, d, s, lo, hi, n, fill)
     vs = s.values
     from = vs->len() - n
     if from < 0 then from = 0
+    count = vs->len() - from
     px = null
     py = null
-    for i in vs->len() - from
-        cx = n - (vs->len() - from) + i
+    for i in count
+        cx = d.w - 1 - (count - 1 - i) * self.step
         cy = (d.h - 1) - (vs[from + i] - lo) * (d.h - 1.0) / (hi - lo)
         if fill
-            for k in d.h - integer(cy)
-                d->set(cx, integer(cy) + k, s.fill)
+            x0 = cx
+            if px != null then x0 = px + 1
+            for k in cx - x0 + 1
+                fy = cy
+                if px != null then fy = py + (cy - py) * (x0 + k - px) / (cx - px)
+                for j in d.h - integer(fy)
+                    d->set(x0 + k, integer(fy) + j, s.fill)
         else if px == null
             d->set(cx, cy, s.color)
         else
@@ -70,7 +76,7 @@ Chart.draw = define(self, x, y, w, h)
     lw = 0
     pw = w
     for pass in 2
-        r = self->range(pw * 2)
+        r = self->range((pw * 2 - 1) / self.step + 1)
         labels = self->labels(r[0], r[1], ph)
         lw = 0
         for s in labels
@@ -87,7 +93,7 @@ Chart.draw = define(self, x, y, w, h)
         self.under->clear()
     lo = r[0]
     hi = r[1]
-    n = d.w
+    n = (d.w - 1) / self.step + 1
     u = self.under
     for s in self.list
         if s.fill != null then self->plot(u, s, lo, hi, n, true)
@@ -127,7 +133,7 @@ Chart.key = define(self, x, y, w)
     Tui.reset()
 
 Chart.new = define()
-    c = { list = [], min = null, max = null, axis = "bright_black", legend = true, dots = null, under = null, area = [0, 0, 0, 0] }
+    c = { list = [], min = null, max = null, axis = "bright_black", legend = true, step = 1, dots = null, under = null, area = [0, 0, 0, 0] }
     c.series = Chart.series
     c.range = Chart.range
     c.labels = Chart.labels
