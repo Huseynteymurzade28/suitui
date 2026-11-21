@@ -128,3 +128,34 @@ Chart.new = define()
     c.key = Chart.key
     c.draw = Chart.draw
     return c
+
+$Sparkline = {}
+
+Sparkline.BARS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+
+Sparkline.draw = define(self, x, y, w, h)
+    self.area = [x, y, w, h]
+    vs = self.values
+    from = vs->len() - w
+    if from < 0 then from = 0
+    lo = self.min
+    hi = self.max
+    for i in vs->len() - from
+        v = vs[from + i]
+        if lo == null or v < lo then lo = v
+        if hi == null or v > hi then hi = v
+    if self.min != null then lo = self.min
+    if self.max != null then hi = self.max
+    Tui.move(x + w - (vs->len() - from), y)
+    Tui.fg(self.color)
+    for i in vs->len() - from
+        k = 0
+        if hi > lo then k = integer((vs[from + i] - lo) * 7.0 / (hi - lo) + 0.5)
+        if k < 0 then k = 0
+        if k > 7 then k = 7
+        Tui.put(Sparkline.BARS[k])
+    Tui.reset()
+    Tui.dirty = true
+
+Sparkline.new = define(color)
+    return { values = [], color = color, min = null, max = null, area = [0, 0, 0, 0], draw = Sparkline.draw }
