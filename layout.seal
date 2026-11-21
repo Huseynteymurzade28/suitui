@@ -24,6 +24,12 @@ Layout.sizes = define(parts, total, gap)
             fills -= 1
     return sizes
 
+Layout.total = define(sizes, gap)
+    n = 0
+    for v in sizes
+        n += v
+    return n + gap * (sizes->len() - 1)
+
 $Row = {}
 
 Row.draw = define(self, x, y, w, h)
