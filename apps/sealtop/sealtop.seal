@@ -11,7 +11,7 @@ $PINK = [255, 143, 171]
 $DIM = [70, 70, 90]
 $TEXT = [200, 200, 215]
 $PARTS = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"]
-$S = { frame = 0, cores = [], total = null, mem = null, load = null, up = 0, host = "", raw = [], tasks = [], full = false, follow = false }
+$S = { frame = 0, cores = [], total = null, mem = null, load = null, up = 0, host = "", raw = [], tasks = [], full = false, follow = false, mode = "list", note = null }
 
 define $mix(a, b, k)
     if k < 0 then k = 0
@@ -128,16 +128,38 @@ define $drawtitle(self, x, y, w, h)
     Tui.write(clock)
     Tui.reset()
 
+define $chip(k, text)
+    Tui.bg(PINK)
+    Tui.fg("black")
+    Tui.write(" " + k + " ")
+    Tui.reset()
+    Tui.fg(TEXT)
+    Tui.write(" " + text + "  ")
+    Tui.reset()
+
 define $drawfoot(self, x, y, w, h)
     Tui.move(x, y)
-    for k in [["q", "quit"], ["P", "cpu"], ["M", "mem"], ["T", "time"], ["N", "pid"], ["U", "user"], ["p", "path"]]
-        Tui.bg(PINK)
-        Tui.fg("black")
-        Tui.write(" " + k[0] + " ")
+    if S.mode == "search"
+        chip("/", "")
+        SEARCH->draw(x + 5, y, 24, 1)
+        Tui.move(x + 31, y)
+        Tui.fg(DIM)
+        Tui.write(string(S.tasks->len()) + " of " + string(S.raw->len()) + "    ")
+        chip("enter", "keep")
+        chip("esc", "clear")
+    else
+        for k in [["q", "quit"], ["/", "find"], ["F9", "kill"], ["P", "cpu"], ["M", "mem"], ["T", "time"], ["N", "pid"], ["p", "path"]]
+            chip(k[0], k[1])
+        if SEARCH.text != ""
+            Tui.fg(YELLOW)
+            Tui.write("/" + SEARCH.text)
+    n = S.note
+    if n != null and n.life > 0
+        Tui.move(x + w - Tui.width(n.text) - 1, y)
+        Tui.fg(mix([39, 40, 34], n.color, n.life / 30.0))
+        Tui.write(n.text)
         Tui.reset()
-        Tui.fg(TEXT)
-        Tui.write(" " + k[1] + "  ")
-    Tui.reset()
+        n.life -= 1
 
 define $bypid(t)
     return t.num
@@ -200,7 +222,13 @@ define $paintproc(self, at, c)
 define $apply()
     pid = null
     if S.follow and S.tasks->len() > PROCS.selected then pid = S.tasks[PROCS.selected].num
-    tasks = Tui.sort(S.raw, SORTS[PROCS.sort])
+    q = String.lower(SEARCH.text)
+    tasks = S.raw
+    if q != ""
+        tasks = []
+        for t in S.raw
+            if String.index(t.find, q) >= 0 then tasks->push(t)
+    tasks = Tui.sort(tasks, SORTS[PROCS.sort])
     if PROCS.desc
         back = []
         i = tasks->len() - 1
@@ -217,7 +245,48 @@ define $apply()
         if not S.full then cmd = t.comm
         rows->push([string(t.num), t.user, t.state, string(t.threads), fixed(t.cpu), fixed(t.mem), size(t.rss), cputime(t.ticks), cmd])
     PROCS.items = rows
+    if PROCS.selected >= rows->len() then PROCS.selected = rows->len() - 1
+    if PROCS.selected < 0 then PROCS.selected = 0
     S.sort = [PROCS.sort, PROCS.desc]
+
+$SEARCH = TextInput.new("command, user or pid")
+SEARCH.fg = TEXT
+
+$SIGNALS = [[15, "TERM", "ask it to stop"], [9, "KILL", "stop it now"], [2, "INT", "like ctrl+c"], [1, "HUP", "hang up"], [19, "STOP", "pause it"], [18, "CONT", "carry on"]]
+$MENU = ListView.new([])
+MENU.hi = RED
+for g in SIGNALS
+    MENU.items->push(lpad(string(g[0]), 2) + "  " + g[1] + Tui.repeat(" ", 6 - Tui.width(g[1])) + g[2])
+$DIALOG = Box.new("", null)
+DIALOG.fg = RED
+DIALOG.border = "double"
+
+define $drawdialog()
+    t = S.target
+    Tui.shade([60, 60, 72])
+    w = 36
+    h = SIGNALS->len() + 4
+    x = (Tui.w - w) / 2
+    y = (Tui.h - h) / 2
+    Tui.blank(x, y, w, h)
+    DIALOG.title = "send a signal"
+    DIALOG->draw(x, y, w, h)
+    Tui.move(x + 2, y + 1)
+    Tui.fg(TEXT)
+    Tui.write(string(t.num) + " ")
+    Tui.fg(PINK)
+    Tui.attr("bold")
+    Tui.write(Utf8.fit(t.comm, w - 10))
+    Tui.reset()
+    MENU->draw(x + 2, y + 3, w - 4, SIGNALS->len())
+
+define $send()
+    t = S.target
+    g = SIGNALS[MENU.selected]
+    if TermIO.kill(t.num, g[0])
+        S.note = { text = "sent " + g[1] + " to " + string(t.num) + " " + t.comm, color = GREEN, life = 90 }
+    else
+        S.note = { text = "could not send " + g[1] + " to " + string(t.num), color = RED, life = 90 }
 
 $PROCS = Table.new([
     ["PID", 7, "right"], ["USER", 9, "left"], ["S", 1, "left"], ["THR", 4, "right"], ["CPU%", 5, "right"],
@@ -315,18 +384,52 @@ while key != "q" and key != "ctrl+c" and key != "f10"
     animate()
     Tui.clear()
     ROOT->draw(0, 0, Tui.w, Tui.h)
+    if S.mode == "kill" then drawdialog()
     key = Tui.pollkey(33)
-    if key != null
-        if key == "P" then PROCS.sort = 4
-        if key == "M" then PROCS.sort = 5
-        if key == "T" then PROCS.sort = 7
-        if key == "N" then PROCS.sort = 0
-        if key == "U" then PROCS.sort = 1
-        if key == "p"
-            S.full = not S.full
+    if key == null
+        skip
+    if S.mode == "kill"
+        if key == "esc" or key == "q" then S.mode = "list"
+        if key == "enter"
+            send()
+            S.mode = "list"
+        MENU->key(key)
+        key = ""
+        skip
+    if S.mode == "search"
+        if key == "esc"
+            SEARCH->set("")
+            S.mode = "list"
             apply()
-        if key == "<" then PROCS.sort = (PROCS.sort + 8) % 9
-        if key == ">" then PROCS.sort = (PROCS.sort + 1) % 9
-        if PROCS->key(key) then S.follow = true
-        if PROCS.sort != S.sort[0] or PROCS.desc != S.sort[1] then apply()
+        else if key == "enter"
+            S.mode = "list"
+        else if key == "up" or key == "down" or key == "pgup" or key == "pgdown" or Key.ismouse(key)
+            if PROCS->key(key) then S.follow = true
+        else if SEARCH->key(key)
+            apply()
+        key = ""
+        skip
+    if key == "/"
+        S.mode = "search"
+        skip
+    if key == "f9" and S.tasks->len() > 0
+        S.target = S.tasks[PROCS.selected]
+        MENU.selected = 0
+        S.mode = "kill"
+        skip
+    if key == "esc" and SEARCH.text != ""
+        SEARCH->set("")
+        apply()
+    if key == "P" then PROCS.sort = 4
+    if key == "M" then PROCS.sort = 5
+    if key == "T" then PROCS.sort = 7
+    if key == "N" then PROCS.sort = 0
+    if key == "U" then PROCS.sort = 1
+    if key == "p"
+        S.full = not S.full
+        apply()
+    if key == "<" then PROCS.sort = (PROCS.sort + 8) % 9
+    if key == ">" then PROCS.sort = (PROCS.sort + 1) % 9
+    if PROCS->key(key) then S.follow = true
+    if PROCS.sort != S.sort[0] or PROCS.desc != S.sort[1] then apply()
 Tui.quit()
