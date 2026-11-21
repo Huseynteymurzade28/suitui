@@ -80,15 +80,22 @@ Chart.draw = define(self, x, y, w, h)
     if d == null or d.cw != pw or d.ch != ph
         d = Dots.new(pw * 2, ph * 4)
         self.dots = d
+        self.under = Dots.new(pw * 2, ph * 4)
     else
         d->clear()
+        self.under->clear()
     lo = r[0]
     hi = r[1]
     n = d.w
+    u = self.under
     for s in self.list
-        if s.fill != null then self->plot(d, s, lo, hi, n, true)
+        if s.fill != null then self->plot(u, s, lo, hi, n, true)
     for s in self.list
         self->plot(d, s, lo, hi, n, false)
+    for i in pw * ph
+        if d.bits[i] == 0
+            d.bits[i] = u.bits[i]
+            d.colors[i] = u.colors[i]
     d->draw(x + lw + 1, y, pw, ph)
     Tui.fg(self.axis)
     for r in ph
@@ -119,7 +126,7 @@ Chart.key = define(self, x, y, w)
     Tui.reset()
 
 Chart.new = define()
-    c = { list = [], min = null, max = null, axis = "bright_black", legend = true, dots = null, area = [0, 0, 0, 0] }
+    c = { list = [], min = null, max = null, axis = "bright_black", legend = true, dots = null, under = null, area = [0, 0, 0, 0] }
     c.series = Chart.series
     c.range = Chart.range
     c.labels = Chart.labels
