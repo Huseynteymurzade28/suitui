@@ -217,7 +217,8 @@ c->draw(0, 0, Tui.w, Tui.h)
 ```
 
 `c.min` and `c.max` fix the axis, left `null` they follow what is on screen. A series with `fill`
-shades the area under its line, one with no color is only the fill. `Sparkline` is the small one,
+shades the area under its line, one with no color is only the fill. `c.step` spreads the values
+that many dots apart. `Sparkline` is the small one,
 a row of `▁▂▃▅▇`:
 
 ```
@@ -243,6 +244,18 @@ list.paint = define(self, at)
 
 <p align="center">
   <img src="docs/todo.gif" alt="todo example" width="560">
+</p>
+
+## sealtop
+
+A small htop, the first real program built on suitui. Everything it shows is read from `/proc`.
+
+```
+make top
+```
+
+<p align="center">
+  <img src="docs/sealtop.gif" alt="sealtop" width="560">
 </p>
 
 ## How it's built
