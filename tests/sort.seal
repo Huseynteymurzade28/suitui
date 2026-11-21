@@ -1,0 +1,12 @@
+include "../tui"
+
+define $id(v)
+    return v
+
+define $second(p)
+    return p[1]
+
+print(Tui.sort([5, 3, 9, 1, 3, 7, 0], id))
+print(Tui.sort([], id), Tui.sort([4], id))
+print(Tui.sort([["a", 2], ["b", 1], ["c", 2], ["d", 0]], second))
+print(Tui.sort([2.5, -1, 10, 0.1], id))
