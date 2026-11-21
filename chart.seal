@@ -44,6 +44,7 @@ Chart.labels = define(self, lo, hi, ph)
     return out
 
 Chart.plot = define(self, d, s, lo, hi, n, fill)
+    if not fill and s.color == null then return null
     vs = s.values
     from = vs->len() - n
     if from < 0 then from = 0
