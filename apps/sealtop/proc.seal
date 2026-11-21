@@ -77,6 +77,7 @@ Proc.task = define(pid, comm)
             stop
     t.cmd = TermIO.text("/proc/" + pid + "/cmdline")
     if t.cmd == null or t.cmd == "" then t.cmd = "[" + comm + "]"
+    t.find = String.lower(pid + " " + t.user + " " + t.cmd)
     return t
 
 Proc.procs = define(memtotal, cores)
