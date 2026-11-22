@@ -171,8 +171,10 @@ Table.draw = define(self, x, y, w, h)
         Tui.write(" ")
         for c in self.columns->len()
             self->base(at)
-            if self.paint != null then self->paint(at, c)
-            Tui.write(Table.align(row[c], sizes[c], self.columns[c][2]))
+            lead = null
+            if self.paint != null then lead = self->paint(at, c)
+            if lead == null then lead = 0
+            Tui.write(Table.align(row[c], sizes[c] - lead, self.columns[c][2]))
             self->base(at)
             Tui.write(" ")
         Tui.write(Tui.repeat(" ", w - 2 - Layout.total(sizes, 1)))

@@ -33,3 +33,18 @@ Tui.shade([1, 2, 3])
 print(Tui.chars, Tui.styles[0], Tui.styles[9])
 Tui.blank(1, 0, 3, 1)
 print(Tui.chars, Tui.styles[1])
+
+define $lead(self, at, c)
+    if c != 1 then return null
+    Tui.write("└─ ")
+    return 3
+
+Tui.resize(24, 3)
+t.paint = lead
+t.top = 0
+t->draw(0, 0, 24, 3)
+for r in 3
+    line = ""
+    for i in 24
+        line += Tui.chars[r * 24 + i]
+    print("'" + line + "'")
