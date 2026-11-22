@@ -252,7 +252,8 @@ list.paint = define(self, at)
 A small htop, the first real program built on suitui. Everything it shows is read from `/proc`.
 Up and down walk the process list, `P` `M` `T` `N` `U` sort by cpu, memory, time, pid or user,
 clicking a column header sorts by it, `p` shows the full command line. `/` filters by command,
-user or pid as you type, `F9` asks which signal to send to the selected process.
+user or pid as you type, `F9` asks which signal to send to the selected process. `t` turns the
+list into a tree of who started whom, `space` folds a branch.
 
 ```
 make top
@@ -260,6 +261,10 @@ make top
 
 <p align="center">
   <img src="docs/sealtop.gif" alt="sealtop" width="560">
+</p>
+
+<p align="center">
+  <img src="docs/tree.gif" alt="sealtop tree view" width="560">
 </p>
 
 ## How it's built
