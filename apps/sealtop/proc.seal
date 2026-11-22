@@ -108,6 +108,7 @@ Proc.procs = define(memtotal, cores)
         if t.ticks >= 0 and not first then t.cpu = (ticks - t.ticks) * 100.0 / period
         t.ticks = ticks
         t.state = rest[0]
+        t.ppid = rest[1]
         t.threads = integer(rest[17])
         t.rss = integer(rest[21]) * 4
         t.mem = t.rss * 100.0 / memtotal
