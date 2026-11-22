@@ -11,7 +11,7 @@ $PINK = [255, 143, 171]
 $DIM = [70, 70, 90]
 $TEXT = [200, 200, 215]
 $PARTS = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"]
-$S = { frame = 0, cores = [], total = null, mem = null, load = null, up = 0, host = "", raw = [], tasks = [], full = false, follow = false, mode = "list", note = null }
+$S = { frame = 0, cores = [], total = null, mem = null, load = null, up = 0, host = "", raw = [], tasks = [], full = false, tree = false, leads = [], follow = false, mode = "list", note = null }
 
 define $mix(a, b, k)
     if k < 0 then k = 0
@@ -148,7 +148,7 @@ define $drawfoot(self, x, y, w, h)
         chip("enter", "keep")
         chip("esc", "clear")
     else
-        for k in [["q", "quit"], ["/", "find"], ["F9", "kill"], ["P", "cpu"], ["M", "mem"], ["T", "time"], ["N", "pid"], ["p", "path"]]
+        for k in [["q", "quit"], ["/", "find"], ["F9", "kill"], ["P", "cpu"], ["M", "mem"], ["T", "time"], ["N", "pid"], ["t", "tree"], ["p", "path"]]
             chip(k[0], k[1])
         if SEARCH.text != ""
             Tui.fg(YELLOW)
@@ -197,9 +197,26 @@ define $cputime(ticks)
     if m >= 60 then return string(m / 60) + "h" + two(m % 60) + ":" + out
     return string(m) + ":" + out
 
+define $branch(t, lead, w, mine)
+    chars = Utf8.split(Utf8.fit(lead, w / 2))
+    for i in chars->len()
+        if mine and i % 3 == 0 then Tui.fg(cool(i / 3 / 6.0))
+        Tui.write(chars[i])
+    n = chars->len()
+    if t.fold and t.kids->len() > 0
+        if mine then Tui.fg(YELLOW)
+        Tui.write("▸ ")
+        n += 2
+    if mine
+        Tui.fg(TEXT)
+        if String.startwith(t.cmd, "[") then Tui.fg(DIM)
+    return n
+
 define $paintproc(self, at, c)
-    if at == self.selected then return null
     t = S.tasks[at]
+    mine = at != self.selected
+    if c == 8 and S.tree then return branch(t, S.leads[at], self.sizes[c], mine)
+    if not mine then return null
     if c == 1
         Tui.fg(TEXT)
         if t.user == "root" then Tui.fg(RED)
@@ -219,6 +236,41 @@ define $paintproc(self, at, c)
         Tui.fg(TEXT)
         if String.startwith(t.cmd, "[") then Tui.fg(DIM)
 
+define $tree(tasks)
+    for t in S.raw
+        t.kids = []
+        t.shown = false
+    for t in tasks
+        t.shown = true
+    roots = []
+    for t in tasks
+        if Map.has(Proc.tasks, t.ppid) and Proc.tasks[t.ppid].shown
+            Proc.tasks[t.ppid].kids->push(t)
+        else
+            roots->push(t)
+    out = []
+    S.leads = []
+    stack = []
+    i = roots->len() - 1
+    while i >= 0
+        stack->push([roots[i], "", ""])
+        i -= 1
+    while stack->len() > 0
+        e = stack->pop()
+        t = e[0]
+        out->push(t)
+        S.leads->push(e[1])
+        if t.fold then skip
+        n = t.kids->len()
+        i = n - 1
+        while i >= 0
+            if i == n - 1
+                stack->push([t.kids[i], e[2] + "└─ ", e[2] + "   "])
+            else
+                stack->push([t.kids[i], e[2] + "├─ ", e[2] + "│  "])
+            i -= 1
+    return out
+
 define $apply()
     pid = null
     if S.follow and S.tasks->len() > PROCS.selected then pid = S.tasks[PROCS.selected].num
@@ -236,6 +288,7 @@ define $apply()
             back->push(tasks[i])
             i -= 1
         tasks = back
+    if S.tree then tasks = tree(tasks)
     S.tasks = tasks
     rows = []
     for i in tasks->len()
@@ -427,6 +480,20 @@ while key != "q" and key != "ctrl+c" and key != "f10"
     if key == "U" then PROCS.sort = 1
     if key == "p"
         S.full = not S.full
+        apply()
+    if key == "t" or key == "f5"
+        S.tree = not S.tree
+        if S.tree
+            PROCS.sort = 0
+            PROCS.desc = false
+        S.follow = true
+        apply()
+    if S.tree and S.tasks->len() > 0 and (key == "space" or key == "+" or key == "-")
+        t = S.tasks[PROCS.selected]
+        if key == "space" then t.fold = not t.fold
+        if key == "-" then t.fold = true
+        if key == "+" then t.fold = false
+        S.follow = true
         apply()
     if key == "<" then PROCS.sort = (PROCS.sort + 8) % 9
     if key == ">" then PROCS.sort = (PROCS.sort + 1) % 9

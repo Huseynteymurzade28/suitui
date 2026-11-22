@@ -70,7 +70,7 @@ Proc.user = define(uid)
     return uid
 
 Proc.task = define(pid, comm)
-    t = { pid = pid, num = integer(pid), comm = comm, user = "?", cmd = "", ticks = -1, cpu = 0.0 }
+    t = { pid = pid, num = integer(pid), comm = comm, user = "?", cmd = "", ticks = -1, cpu = 0.0, fold = false, kids = [], shown = false }
     for line in Proc.lines("/proc/" + pid + "/status")
         if String.startwith(line, "Uid:")
             t.user = Proc.user(line->split("\t")[1])
